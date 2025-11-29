@@ -1,0 +1,7 @@
+node_modules
+.next
+.env
+.env.local
+.env.development
+firebase-key.json
+firebase-messaging-sw.js.map
