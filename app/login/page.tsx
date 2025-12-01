@@ -19,52 +19,58 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push("/dashboard"); // Başarılı girişte yönlendirme
+      router.push("/dashboard");
     } catch (err: any) {
-      setError(err.message);
+      setError("Giriş işlemi başarısız. E-postayı veya şifreyi kontrol et.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-black text-white">
-      <form
-        onSubmit={handleLogin}
-        className="w-full max-w-sm p-6 rounded-2xl bg-zinc-900 shadow-xl space-y-4"
-      >
-        <h1 className="text-2xl font-semibold text-center mb-4">
-          Login to Symphira
+    <div className="flex min-h-screen items-center justify-center bg-black text-white px-4">
+      <div className="w-full max-w-md bg-zinc-900 p-8 rounded-2xl shadow-xl">
+        <h1 className="text-3xl font-bold mb-6 text-center text-purple-300">
+          Welcome Back
         </h1>
 
-        <input
-          type="email"
-          placeholder="Email address"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full p-2 rounded bg-zinc-800 border border-zinc-700 outline-none"
-          required
-        />
+        <form onSubmit={handleLogin} className="space-y-4">
+          <input
+            type="email"
+            placeholder="Email address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full p-3 rounded bg-zinc-800 border border-zinc-700 outline-none focus:border-purple-500 transition"
+            required
+          />
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full p-2 rounded bg-zinc-800 border border-zinc-700 outline-none"
-          required
-        />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full p-3 rounded bg-zinc-800 border border-zinc-700 outline-none focus:border-purple-500 transition"
+            required
+          />
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded-md font-medium transition"
-        >
-          {loading ? "Signing in..." : "Login"}
-        </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-purple-600 hover:bg-purple-700 rounded-md font-medium transition"
+          >
+            {loading ? "Logging in..." : "Login"}
+          </button>
 
-        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-      </form>
+          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+        </form>
+
+        <p className="mt-6 text-center text-sm text-gray-400">
+          Don't have an account?{" "}
+          <a href="/register" className="text-purple-400 hover:underline">
+            Register here
+          </a>
+        </p>
+      </div>
     </div>
   );
 }

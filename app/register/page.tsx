@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
@@ -25,56 +26,70 @@ export default function RegisterPage() {
       await setDoc(doc(db, "users", user.uid), {
         name,
         email,
-        roles: ["musician"], // yeni kullanıcılar varsayılan olarak müzisyen
+        roles: ["musician"],
         createdAt: serverTimestamp(),
       });
 
       router.push("/dashboard");
     } catch (err: any) {
-      setError(err.message);
+      setError("Kayıt başarısız. Email adresi alınmış olabilir veya şifre zayıf.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white p-6">
-      <div className="bg-zinc-900 p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-center">Create Account</h1>
-        <form onSubmit={handleRegister} className="flex flex-col space-y-4">
+    <div className="flex min-h-screen items-center justify-center bg-black text-white px-4">
+      <div className="w-full max-w-md bg-zinc-900 p-8 rounded-2xl shadow-xl">
+        <h1 className="text-3xl font-bold mb-6 text-center text-purple-300">
+          Create Account
+        </h1>
+
+        <form onSubmit={handleRegister} className="space-y-4">
           <input
             type="text"
-            placeholder="Name"
+            placeholder="Full name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="p-2 rounded bg-zinc-800 text-white"
+            className="w-full p-3 rounded bg-zinc-800 border border-zinc-700 outline-none focus:border-purple-500 transition"
             required
           />
+
           <input
             type="email"
-            placeholder="Email"
+            placeholder="Email address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="p-2 rounded bg-zinc-800 text-white"
+            className="w-full p-3 rounded bg-zinc-800 border border-zinc-700 outline-none focus:border-purple-500 transition"
             required
           />
+
           <input
             type="password"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="p-2 rounded bg-zinc-800 text-white"
+            className="w-full p-3 rounded bg-zinc-800 border border-zinc-700 outline-none focus:border-purple-500 transition"
             required
           />
+
           <button
             type="submit"
             disabled={loading}
-            className="bg-purple-600 hover:bg-purple-700 transition px-4 py-2 rounded"
+            className="w-full py-3 bg-purple-600 hover:bg-purple-700 rounded-md font-medium transition"
           >
             {loading ? "Creating account..." : "Register"}
           </button>
+
+          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
         </form>
-        {error && <p className="text-red-500 mt-4 text-sm">{error}</p>}
+
+        <p className="mt-6 text-center text-sm text-gray-400">
+          Already have an account?{" "}
+          <a href="/login" className="text-purple-400 hover:underline">
+            Login here
+          </a>
+        </p>
       </div>
     </div>
   );
