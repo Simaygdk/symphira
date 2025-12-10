@@ -1,107 +1,73 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { auth, db } from "@lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
-import { signOut, onAuthStateChanged } from "firebase/auth";
+import SparkleBurst from "../components/SparkleBurst";
 
-export default function DashboardPage() {
+const modules = [
+  {
+    title: "Musician Space",
+    desc: "Showcase your sound, connect with listeners.",
+    icon: "🎸",
+    route: "/musician",
+  },
+  {
+    title: "Collaboration Hub",
+    desc: "Find talent or get discovered for your next project.",
+    icon: "💼",
+    route: "/employer",
+  },
+  {
+    title: "Marketplace",
+    desc: "Buy & sell instruments, samples, and digital assets.",
+    icon: "🛍️",
+    route: "/seller",
+  },
+  {
+    title: "Discover Music",
+    desc: "Explore artists, genres, and Symphira-exclusive tracks.",
+    icon: "🎧",
+    route: "/listener",
+  },
+];
+
+export default function HomePage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (!user) return;
-    const fetchProfile = async () => {
-      const ref = doc(db, "users", user.uid);
-      const snap = await getDoc(ref);
-      if (snap.exists()) setProfile(snap.data());
-      setLoading(false);
-    };
-    fetchProfile();
-  }, [user]);
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-black text-gray-400">
-        Loading your dashboard...
-      </div>
-    );
-  }
-
-  if (!user || !profile) {
-    router.push("/login");
-    return null;
-  }
+  const handleClick = (route: string) => router.push(route);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white">
-      <div className="bg-zinc-900 p-8 rounded-2xl shadow-lg w-96 text-center">
-        <h1 className="text-2xl font-bold mb-2 text-purple-400">
-          Welcome to Symphira 🎵
-        </h1>
-        <p className="text-gray-300">{user.email}</p>
-        <p className="text-gray-400 mb-4">
-          Roles: {profile.roles?.join(", ")}
-        </p>
+    <div className="min-h-screen bg-[#0a0714] flex flex-col items-center text-white px-6 pt-20">
+      <h1 className="text-5xl md:text-6xl font-bold mb-4 bg-gradient-to-b from-yellow-200 to-yellow-500 bg-clip-text text-transparent drop-shadow-xl">
+        What Would You Like To Explore Today?
+      </h1>
 
-        {profile.roles?.includes("musician") && (
-          <button
-            onClick={() => router.push("/musician")}
-            className="w-full bg-zinc-800 hover:bg-zinc-700 py-3 rounded mt-4"
+      <p className="text-gray-300 mb-12 text-lg">
+        Choose freely — Symphira is your creative universe.
+      </p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-4xl w-full">
+        {modules.map((mod, i) => (
+          <motion.button
+            key={i}
+            onClick={() => handleClick(mod.route)}
+            whileHover={{ scale: 1.03 }}
+            className="
+              relative p-8 rounded-3xl text-left transition 
+              backdrop-blur-xl bg-white/5 border border-white/10
+              hover:bg-white/10 hover:shadow-[0_0_25px_rgba(255,230,140,0.4)]
+            "
           >
-            🎸 Musician Panel
-          </button>
-        )}
+            <SparkleBurst />
 
-        {profile.roles?.includes("employer") && (
-          <button
-            onClick={() => router.push("/employer")}
-            className="w-full bg-zinc-800 hover:bg-zinc-700 py-3 rounded mt-4"
-          >
-            💼 Employer Area
-          </button>
-        )}
+            <div className="text-4xl mb-3">{mod.icon}</div>
 
-        {profile.roles?.includes("seller") && (
-          <button
-            onClick={() => router.push("/seller")}
-            className="w-full bg-zinc-800 hover:bg-zinc-700 py-3 rounded mt-4"
-          >
-            💰 Seller Shop
-          </button>
-        )}
+            <h2 className="text-3xl font-semibold text-yellow-300">
+              {mod.title}
+            </h2>
 
-        {profile.roles?.includes("listener") && (
-          <button
-            onClick={() => router.push("/listener")}
-            className="w-full bg-zinc-800 hover:bg-zinc-700 py-3 rounded mt-4"
-          >
-            🎧 Listener Space
-          </button>
-        )}
-
-        <button
-          onClick={() => router.push("/profile")}
-          className="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 mt-6 rounded"
-        >
-          Edit Profile
-        </button>
-
-        <button
-          onClick={() => signOut(auth)}
-          className="w-full bg-red-600 hover:bg-red-500 py-2 mt-4 rounded"
-        >
-          Logout
-        </button>
+            <p className="text-gray-300 mt-2 text-md">{mod.desc}</p>
+          </motion.button>
+        ))}
       </div>
     </div>
   );
