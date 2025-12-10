@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { auth, db } from "../../lib/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
@@ -8,6 +9,7 @@ import { useRouter } from "next/navigation";
 
 export default function RegisterPage() {
   const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -16,8 +18,8 @@ export default function RegisterPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
+    setError("");
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -32,7 +34,13 @@ export default function RegisterPage() {
 
       router.push("/dashboard");
     } catch (err: any) {
-      setError("Kayıt başarısız. Email adresi alınmış olabilir veya şifre zayıf.");
+      let message = "Registration failed.";
+
+      if (err.code === "auth/email-already-in-use") message = "Email is already in use.";
+      if (err.code === "auth/weak-password") message = "Password must be at least 6 characters.";
+      if (err.code === "auth/invalid-email") message = "Invalid email address.";
+
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -86,9 +94,9 @@ export default function RegisterPage() {
 
         <p className="mt-6 text-center text-sm text-gray-400">
           Already have an account?{" "}
-          <a href="/login" className="text-purple-400 hover:underline">
+          <Link href="/login" className="text-purple-400 hover:underline">
             Login here
-          </a>
+          </Link>
         </p>
       </div>
     </div>

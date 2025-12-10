@@ -1,8 +1,10 @@
-import { initializeApp } from "firebase/app";
+"use client";
+
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-import { getMessaging } from "firebase/messaging";
+import { getMessaging, isSupported } from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBXzFvq-ExK8r3Vi3rtMIFW6v3nc2yRW6g",
@@ -14,14 +16,26 @@ const firebaseConfig = {
   measurementId: "G-HYR79D5BHH",
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Initialize Firebase (prevent duplicate apps)
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Firebase services
+// Core services — always safe to initialize
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
-const messaging = typeof window !== "undefined" ? getMessaging(app) : null;
 
-// Exports
+// Messaging — must be async + browser-only + support check
+let messaging: ReturnType<typeof getMessaging> | null = null;
+
+if (typeof window !== "undefined") {
+  isSupported().then((supported) => {
+    if (supported) {
+      messaging = getMessaging(app);
+    } else {
+      console.warn("FCM not supported on this browser.");
+      messaging = null;
+    }
+  });
+}
+
 export { app, auth, db, storage, messaging };

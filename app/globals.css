@@ -1,22 +1,51 @@
-@import "tailwindcss";
 @import url("https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&display=swap");
+@import "tailwindcss";
 
-/* Theme Vars */
+
+/* ================================
+   ROOT THEME VARIABLES
+   ================================ */
 :root {
   --background: #000000;
   --foreground: #ffffff;
   --font-heading: "Cinzel Decorative", serif;
 }
 
+/* ================================
+   GLOBAL BODY STYLING
+   ================================ */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Heading font */
+/* ================================
+   HEADING FONT (Brand Typography)
+   ================================ */
 .heading-font {
   font-family: var(--font-heading);
   letter-spacing: 2px;
   text-transform: uppercase;
+}
+
+/* ================================
+   ANIMATIONS
+   ================================ */
+@keyframes lightFlow {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.5;
+  }
+}
+
+.animate-lightFlow {
+  animation: lightFlow 8s ease-in-out infinite;
 }

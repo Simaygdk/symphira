@@ -5,18 +5,35 @@ import { requestPermissionAndGetToken } from "../lib/firebase-messaging";
 
 export function FCMInitializer() {
   useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("/firebase-messaging-sw.js")
-        .then(() => console.log("Service Worker registered"))
-        .catch((err) => console.error("Service Worker failed:", err));
-    }
+    const initFCM = async () => {
+      if (typeof window === "undefined") return;
 
-    requestPermissionAndGetToken().then((token) => {
-      if (token) {
-        console.log("FCM Token:", token);
+      // Register Service Worker
+      if ("serviceWorker" in navigator) {
+        try {
+          const registration = await navigator.serviceWorker.register(
+            "/firebase-messaging-sw.js"
+          );
+          console.log("Service Worker registered:", registration);
+        } catch (err) {
+          console.error("Service Worker registration failed:", err);
+        }
       }
-    });
+
+      // Request permission + get FCM token
+      try {
+        const token = await requestPermissionAndGetToken();
+        if (token) {
+          console.log("FCM Token:", token);
+        } else {
+          console.warn("No FCM token received (permission denied?)");
+        }
+      } catch (error) {
+        console.error("FCM token error:", error);
+      }
+    };
+
+    initFCM();
   }, []);
 
   return null;

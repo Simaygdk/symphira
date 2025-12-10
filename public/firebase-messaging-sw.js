@@ -1,3 +1,5 @@
+// Modern Firebase Messaging Service Worker (ESM Safe Compat Version)
+
 importScripts("https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js");
 
@@ -12,9 +14,39 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// Background Push Handler
 messaging.onBackgroundMessage((payload) => {
-  console.log("📩 Received background message ", payload);
-  self.registration.showNotification(payload.notification.title, {
-    body: payload.notification.body,
-  });
+  console.log("📩 Background Message:", payload);
+
+  const notification = payload.notification || {}; // Fail-safe
+  const title = notification.title || "Symphira";
+  const body = notification.body || "You have a new message";
+
+  const options = {
+    body,
+    icon: "/icons/notification-icon.png", // Optional branding
+    badge: "/icons/badge-icon.png",       // Optional
+    vibrate: [100, 50, 100],
+    data: {
+      url: notification.click_action || "/", // Route on click
+      payload,
+    },
+  };
+
+  self.registration.showNotification(title, options);
+});
+
+// Click Action (when user taps the notification)
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  const url = event.notification.data?.url || "/";
+  event.waitUntil(
+    clients.matchAll({ type: "window" }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url === url && "focus" in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow(url);
+    })
+  );
 });

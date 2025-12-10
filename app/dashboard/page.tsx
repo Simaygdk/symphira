@@ -1,74 +1,80 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
-import SparkleBurst from "../components/SparkleBurst";
+import Link from "next/link";
+import {
+  Music,
+  Briefcase,
+  ShoppingBag,
+  Headphones,
+} from "lucide-react";
 
-const modules = [
-  {
-    title: "Musician Space",
-    desc: "Showcase your sound, connect with listeners.",
-    icon: "🎸",
-    route: "/musician",
-  },
-  {
-    title: "Collaboration Hub",
-    desc: "Find talent or get discovered for your next project.",
-    icon: "💼",
-    route: "/employer",
-  },
-  {
-    title: "Marketplace",
-    desc: "Buy & sell instruments, samples, and digital assets.",
-    icon: "🛍️",
-    route: "/seller",
-  },
-  {
-    title: "Discover Music",
-    desc: "Explore artists, genres, and Symphira-exclusive tracks.",
-    icon: "🎧",
-    route: "/listener",
-  },
-];
-
-export default function HomePage() {
-  const router = useRouter();
-  const handleClick = (route: string) => router.push(route);
+export default function DashboardPage() {
+  const modules = [
+    {
+      title: "Musician",
+      desc: "Upload music, manage your library, view offers.",
+      icon: <Music size={40} />,
+      href: "/dashboard/musician",
+      color: "from-purple-500/40 to-purple-700/40",
+    },
+    {
+      title: "Employer",
+      desc: "Create offers, manage applications, discover talent.",
+      icon: <Briefcase size={40} />,
+      href: "/dashboard/employer",
+      color: "from-yellow-500/40 to-yellow-700/40",
+    },
+    {
+      title: "Seller",
+      desc: "Sell samples, presets, merch & digital products.",
+      icon: <ShoppingBag size={40} />,
+      href: "/dashboard/seller",
+      color: "from-green-500/40 to-green-700/40",
+    },
+    {
+      title: "Listener",
+      desc: "Discover artists, browse music & enjoy playlists.",
+      icon: <Headphones size={40} />,
+      href: "/dashboard/listener",
+      color: "from-blue-500/40 to-blue-700/40",
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-[#0a0714] flex flex-col items-center text-white px-6 pt-20">
-      <h1 className="text-5xl md:text-6xl font-bold mb-4 bg-gradient-to-b from-yellow-200 to-yellow-500 bg-clip-text text-transparent drop-shadow-xl">
-        What Would You Like To Explore Today?
+    <main className="min-h-screen bg-gradient-to-br from-[#0a0a1f] via-[#1b1035] to-[#3b1560] text-white px-6 py-16">
+      <h1 className="text-5xl font-bold text-center text-[#f5d36e] drop-shadow-lg">
+        Welcome to Symphira
       </h1>
 
-      <p className="text-gray-300 mb-12 text-lg">
-        Choose freely — Symphira is your creative universe.
+      <p className="text-center text-neutral-300 mt-3">
+        Choose any module — no roles, no limits. Create your world.
       </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-4xl w-full">
-        {modules.map((mod, i) => (
-          <motion.button
-            key={i}
-            onClick={() => handleClick(mod.route)}
-            whileHover={{ scale: 1.03 }}
-            className="
-              relative p-8 rounded-3xl text-left transition 
-              backdrop-blur-xl bg-white/5 border border-white/10
-              hover:bg-white/10 hover:shadow-[0_0_25px_rgba(255,230,140,0.4)]
-            "
-          >
-            <SparkleBurst />
-
-            <div className="text-4xl mb-3">{mod.icon}</div>
-
-            <h2 className="text-3xl font-semibold text-yellow-300">
-              {mod.title}
-            </h2>
-
-            <p className="text-gray-300 mt-2 text-md">{mod.desc}</p>
-          </motion.button>
+      <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-10 max-w-4xl mx-auto">
+        {modules.map((mod) => (
+          <Link key={mod.title} href={mod.href}>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.97 }}
+              className={`
+                cursor-pointer p-8 rounded-3xl border border-white/20 backdrop-blur-xl 
+                shadow-xl transition bg-gradient-to-br ${mod.color}
+              `}
+            >
+              <div className="flex items-center gap-4">
+                <div className="text-white drop-shadow-xl">{mod.icon}</div>
+                <div>
+                  <h2 className="text-2xl font-semibold text-white">
+                    {mod.title}
+                  </h2>
+                  <p className="text-neutral-300 text-sm mt-1">{mod.desc}</p>
+                </div>
+              </div>
+            </motion.div>
+          </Link>
         ))}
       </div>
-    </div>
+    </main>
   );
 }

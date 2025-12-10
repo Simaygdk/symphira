@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { auth } from "../../lib/firebase";
 
 export default function LoginPage() {
   const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,7 +23,14 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, email, password);
       router.push("/dashboard");
     } catch (err: any) {
-      setError("Giriş işlemi başarısız. E-postayı veya şifreyi kontrol et.");
+      let message = "Login failed.";
+
+      if (err.code === "auth/invalid-credential") message = "Invalid email or password.";
+      if (err.code === "auth/user-not-found") message = "Account does not exist.";
+      if (err.code === "auth/wrong-password") message = "Incorrect password.";
+      if (err.code === "auth/too-many-requests") message = "Too many attempts. Try again later.";
+
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -66,9 +75,9 @@ export default function LoginPage() {
 
         <p className="mt-6 text-center text-sm text-gray-400">
           Don't have an account?{" "}
-          <a href="/register" className="text-purple-400 hover:underline">
+          <Link href="/register" className="text-purple-400 hover:underline">
             Register here
-          </a>
+          </Link>
         </p>
       </div>
     </div>

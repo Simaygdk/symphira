@@ -1,24 +1,20 @@
 import "./globals.css";
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import { FCMInitializer } from "./fcm-init";
+import { AudioPlayerProvider } from "./providers/AudioPlayerProvider";
+import AudioPlayer from "./components/AudioPlayer";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-});
-
-export const metadata: Metadata = {
+export const metadata = {
   title: "Symphira",
-  description: "Where music finds purpose.",
+  description: "Music platform",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="bg-black text-white">
-      <body className={`${inter.variable} antialiased min-h-screen flex flex-col`}>
-        <FCMInitializer />
-        {children}
+    <html lang="en">
+      <body>
+        <AudioPlayerProvider>
+          {children}
+          <AudioPlayer />
+        </AudioPlayerProvider>
       </body>
     </html>
   );
