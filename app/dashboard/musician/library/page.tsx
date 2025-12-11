@@ -1,79 +1,117 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getDownloadURL, listAll, ref } from "firebase/storage";
-import { storage } from "@/lib/firebase";
-import { useAudioPlayer } from "@/app/providers/AudioPlayerProvider";
 import { motion } from "framer-motion";
-import { Music, PlayCircle } from "lucide-react";
+import { db, storage } from "../../../../lib/firebase";
+import { collection, onSnapshot, orderBy, query, deleteDoc, doc } from "firebase/firestore";
+import { ref, deleteObject } from "firebase/storage";
+import { Play, Trash2 } from "lucide-react";
+import { useAudioPlayer } from "../../../components/AudioPlayerContext";
 
 export default function MusicLibraryPage() {
-  const [tracks, setTracks] = useState<{ name: string; url: string }[]>([]);
-  const { setTrack } = useAudioPlayer(); // 🎧 Global Player bağlantısı
-
-  // Şimdilik manuel sanatçı, sonra auth ile dinamik olacak:
-  const artistName = "Simay";
+  const { playTrack } = useAudioPlayer();
+  const [tracks, setTracks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchMusic() {
-      try {
-        const folderRef = ref(storage, `music/${artistName}`);
-        const result = await listAll(folderRef);
+    const q = query(collection(db, "tracks"), orderBy("createdAt", "desc"));
 
-        const fileData = await Promise.all(
-          result.items.map(async (item) => {
-            const url = await getDownloadURL(item);
-            return { name: item.name, url };
-          })
-        );
+    const unsub = onSnapshot(q, (snapshot) => {
+      const list = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setTracks(list);
+      setLoading(false);
+    });
 
-        setTracks(fileData);
-      } catch (error) {
-        console.error("Failed to load tracks:", error);
-      }
-    }
-
-    fetchMusic();
+    return () => unsub();
   }, []);
 
+  const deleteTrack = async (track: any) => {
+    const yes = confirm(`Delete "${track.title}"?`);
+    if (!yes) return;
+
+    try {
+      setDeleting(track.id);
+
+      if (track.coverURL) {
+        const coverRef = ref(storage, track.coverURL);
+        deleteObject(coverRef).catch(() => {});
+      }
+
+      if (track.audioURL) {
+        const audioRef = ref(storage, track.audioURL);
+        deleteObject(audioRef).catch(() => {});
+      }
+
+      await deleteDoc(doc(db, "tracks", track.id));
+
+      setDeleting(null);
+    } catch (e) {
+      setDeleting(null);
+      alert("Failed to delete track.");
+    }
+  };
+
   return (
-    <main className="min-h-screen bg-gradient-to-br from-[#0a0a1f] via-[#1b1035] to-[#3b1560] text-white px-6 py-16">
-      <h1 className="text-4xl font-bold text-center text-[#f5d36e] mb-10">
-        Music Library
+    <main className="min-h-screen px-6 py-16 bg-gradient-to-b from-[#140a25] via-[#1c0f36] to-[#2b1650] text-white">
+      <h1 className="text-4xl font-bold mb-10 text-purple-300 drop-shadow-[0_0_25px_rgba(180,50,255,0.35)]">
+        Your Library
       </h1>
 
-      {/* Track Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-        {tracks.length === 0 ? (
-          <p className="text-neutral-400 text-center col-span-full">
-            No uploaded music found.
-          </p>
-        ) : (
-          tracks.map((track) => (
-            <motion.div
-              key={track.name}
-              whileHover={{ scale: 1.03 }}
-              className="p-5 bg-white/10 border border-white/20 rounded-2xl backdrop-blur-xl shadow-[0_0_20px_rgba(245,211,110,0.25)]"
-            >
-              {/* Track Info */}
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-semibold text-[#f5d36e]">
-                  {track.name.replace(".mp3", "")}
-                </h3>
-                <Music size={20} />
-              </div>
+      {loading && (
+        <p className="text-neutral-400 text-lg">Loading tracks...</p>
+      )}
 
-              {/* Play Button */}
+      {!loading && tracks.length === 0 && (
+        <p className="text-neutral-400 text-lg italic">No tracks uploaded yet.</p>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl">
+        {tracks.map((track) => (
+          <motion.div
+            key={track.id}
+            whileHover={{ scale: 1.03 }}
+            className="p-4 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 
+            shadow-[0_0_20px_rgba(150,70,255,0.15)] transition"
+          >
+            <img
+              src={track.coverURL}
+              alt={track.title}
+              className="w-full h-48 object-cover rounded-xl mb-4"
+            />
+
+            <h2 className="text-xl font-semibold">{track.title}</h2>
+            <p className="text-neutral-400 text-sm">{track.artistName}</p>
+
+            <div className="flex justify-between mt-4">
               <button
-                onClick={() => setTrack(track.url)} // 🎧 Global Player’a track gönderme
-                className="w-full py-2 mt-2 rounded-xl bg-[#f5d36e]/20 border border-[#f5d36e]/40 text-[#f5d36e] hover:bg-[#f5d36e]/30 transition-all flex items-center justify-center gap-2"
+                onClick={() =>
+                  playTrack({
+                    title: track.title,
+                    artistName: track.artistName,
+                    audioURL: track.audioURL,
+                    coverURL: track.coverURL,
+                  })
+                }
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-600/30 
+                border border-purple-400 text-purple-200 hover:bg-purple-600/40 transition"
               >
-                <PlayCircle size={18} />
+                <Play size={18} />
                 Play
               </button>
-            </motion.div>
-          ))
-        )}
+
+              <button
+                disabled={deleting === track.id}
+                onClick={() => deleteTrack(track)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600/20 
+                border border-red-500/40 text-red-300 hover:bg-red-600/30 transition"
+              >
+                <Trash2 size={18} />
+                {deleting === track.id ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </motion.div>
+        ))}
       </div>
     </main>
   );

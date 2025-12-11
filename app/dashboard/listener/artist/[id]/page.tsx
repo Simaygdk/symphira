@@ -1,113 +1,104 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { db } from "../../../../../lib/firebase";
+import { db } from "@/lib/firebase";
 import { doc, getDoc, collection, getDocs, query, where } from "firebase/firestore";
-import { Loader2, Music, User } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 
-interface ArtistProfile {
-  name: string;
-  bio: string;
-  avatar?: string;
-}
+export default function ArtistProfilePage({ params }: { params: { id: string } }) {
+  const { id } = params;
 
-interface Track {
-  id: string;
-  title: string;
-  url: string;
-}
-
-export default function ArtistPublicProfile({ params }: { params: { id: string } }) {
-  const artistId = params.id;
-
-  const [artist, setArtist] = useState<ArtistProfile | null>(null);
-  const [tracks, setTracks] = useState<Track[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [artist, setArtist] = useState<any>(null);
+  const [tracks, setTracks] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchArtistData = async () => {
-      const ref = doc(db, "musicians", artistId);
+    const loadArtist = async () => {
+      const ref = doc(db, "artists", id);
       const snap = await getDoc(ref);
 
-      if (snap.exists()) setArtist(snap.data() as ArtistProfile);
-      else setArtist(null);
-
-      // Load tracks by this musician
-      const tracksRef = collection(db, "tracks");
-      const q = query(tracksRef, where("artistId", "==", artistId));
-      const trackSnaps = await getDocs(q);
-
-      const loadedTracks = trackSnaps.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-      })) as Track[];
-
-      setTracks(loadedTracks);
-      setLoading(false);
+      if (snap.exists()) {
+        setArtist({ id: snap.id, ...snap.data() });
+      }
     };
 
-    fetchArtistData();
-  }, [artistId]);
+    const loadTracks = async () => {
+      const tracksRef = collection(db, "tracks");
+      const q = query(tracksRef, where("artistId", "==", id));
+      const snap = await getDocs(q);
 
-  if (loading) {
+      const list = snap.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      }));
+
+      setTracks(list);
+    };
+
+    loadArtist();
+    loadTracks();
+  }, [id]);
+
+  if (!artist)
     return (
-      <main className="min-h-screen flex items-center justify-center text-white">
-        <Loader2 className="animate-spin" size={34} />
+      <main className="min-h-screen text-white flex items-center justify-center">
+        Loading...
       </main>
     );
-  }
-
-  if (!artist) {
-    return (
-      <main className="min-h-screen flex items-center justify-center text-white">
-        <p className="text-lg text-red-400">Artist not found.</p>
-      </main>
-    );
-  }
 
   return (
-    <main className="min-h-screen px-6 py-14 bg-gradient-to-b from-[#0a0714] via-[#1c0e2b] to-[#2b1142] text-white">
+    <main className="min-h-screen text-white px-6 py-16 flex flex-col gap-16">
+
       {/* Artist Header */}
-      <div className="max-w-3xl mx-auto text-center">
-        {artist.avatar ? (
-          <img
-            src={artist.avatar}
-            className="w-32 h-32 rounded-full mx-auto border-4 border-purple-300 object-cover"
+      <section className="flex flex-col items-center gap-4">
+        <div className="w-40 h-40 rounded-full overflow-hidden border border-white/20">
+          <Image
+            src={artist.photoURL || "/default-artist.png"}
+            width={300}
+            height={300}
+            alt="artist"
+            className="object-cover w-full h-full"
           />
-        ) : (
-          <div className="w-32 h-32 rounded-full mx-auto bg-purple-400/20 text-purple-300 flex items-center justify-center border border-purple-300">
-            <User size={44} />
-          </div>
+        </div>
+
+        <h1 className="text-4xl font-bold">{artist.name}</h1>
+
+        <p className="text-white/60 max-w-xl text-center text-sm">
+          {artist.bio || "This artist has no bio yet."}
+        </p>
+      </section>
+
+      {/* Artist Tracks */}
+      <section className="flex flex-col gap-4">
+        <h2 className="text-2xl font-semibold">Tracks by {artist.name}</h2>
+
+        {tracks.length === 0 && (
+          <p className="text-white/50 text-sm">This artist has no tracks yet.</p>
         )}
 
-        <h1 className="text-4xl mt-4 font-bold text-purple-200">{artist.name}</h1>
-        <p className="text-neutral-300 mt-3 max-w-lg mx-auto">{artist.bio}</p>
-      </div>
-
-      {/* Tracks Section */}
-      <div className="max-w-3xl mx-auto mt-14">
-        <h2 className="text-2xl font-semibold mb-6 text-purple-300">Published Tracks</h2>
-
-        {tracks.length === 0 ? (
-          <p className="text-neutral-400">This artist has not uploaded any tracks yet.</p>
-        ) : (
-          <div className="space-y-4">
-            {tracks.map((track) => (
-              <div
-                key={track.id}
-                className="p-4 bg-white/10 rounded-xl border border-white/10 flex items-center justify-between"
-              >
-                <div className="flex items-center gap-4">
-                  <Music className="text-purple-300" />
-                  <p className="text-lg">{track.title}</p>
-                </div>
-
-                <audio controls src={track.url} className="w-48" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
+          {tracks.map((track) => (
+            <Link
+              key={track.id}
+              href={`/dashboard/listener/track/${track.id}`}
+              className="bg-white/5 p-4 rounded-xl border border-white/10 hover:bg-white/10 transition"
+            >
+              <div className="aspect-square w-full rounded-lg overflow-hidden mb-3">
+                <Image
+                  src={track.coverURL || "/default-cover.png"}
+                  width={300}
+                  height={300}
+                  alt="cover"
+                  className="object-cover w-full h-full"
+                />
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+
+              <p className="font-medium truncate">{track.title}</p>
+              <p className="text-sm text-white/50 truncate">{artist.name}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
     </main>
   );
 }

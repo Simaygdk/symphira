@@ -1,44 +1,40 @@
 "use client";
 
-import React from "react";
-import DashboardSidebar from "@/app/components/layout/DashboardSidebar";
-import DashboardTopbar from "@/app/components/layout/DashboardTopbar";
+import { useState } from "react";
+import DashboardSidebar from "../components/layout/DashboardSidebar";
+import DashboardTopbar from "../components/layout/DashboardTopbar";
+import AudioPlayer from "../components/AudioPlayer";
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
 
   return (
-    <div className="flex w-full min-h-screen bg-black text-white">
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:block w-60 border-r border-white/10 bg-black/30 backdrop-blur-xl">
+    <div className="flex min-h-screen bg-black text-white">
+      <aside className="hidden md:block w-64 border-r border-white/10 bg-black/40 backdrop-blur-xl">
         <DashboardSidebar />
       </aside>
 
-      {/* Mobile Sidebar */}
-      {sidebarOpen && (
+      {open && (
         <div
-          className="fixed inset-0 z-40 bg-black/70 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        >
-          <aside
-            className="absolute left-0 top-0 w-60 h-full bg-black border-r border-white/10 p-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <DashboardSidebar />
-          </aside>
-        </div>
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
+          onClick={() => setOpen(false)}
+        />
       )}
 
-      {/* Main content wrapper */}
-      <div className="flex flex-col flex-1 min-h-screen">
-        <DashboardTopbar onMenuClick={() => setSidebarOpen(true)} />
+      <aside
+        className={`fixed top-0 left-0 h-full w-64 bg-black/90 backdrop-blur-xl border-r border-white/10 z-50 transform ${
+          open ? "translate-x-0" : "-translate-x-full"
+        } transition md:hidden`}
+      >
+        <DashboardSidebar />
+      </aside>
 
-        <div className="flex-1 p-4 overflow-auto">{children}</div>
-      </div>
+      <main className="flex-1 flex flex-col">
+        <DashboardTopbar onMenu={() => setOpen(true)} />
+        <div className="flex-1 overflow-y-auto">{children}</div>
+      </main>
+
+      <AudioPlayer />
     </div>
   );
 }

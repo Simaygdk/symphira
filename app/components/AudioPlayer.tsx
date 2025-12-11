@@ -1,6 +1,6 @@
 "use client";
 
-import { useAudioPlayer } from "@/app/providers/AudioPlayerProvider";
+import { useAudioPlayer } from "../providers/AudioPlayerProvider";
 
 export default function AudioPlayer() {
   const { currentTrack } = useAudioPlayer();
@@ -8,8 +8,7 @@ export default function AudioPlayer() {
   if (!currentTrack) return null;
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-xl 
-      bg-white/10 border border-white/20 backdrop-blur-xl p-4 rounded-2xl shadow-2xl z-50">
+    <div className="fixed bottom-0 left-0 right-0 h-20 bg-black/70 backdrop-blur-xl border-t border-white/10 flex items-center px-6 z-50">
       <audio src={currentTrack} controls autoPlay className="w-full" />
     </div>
   );

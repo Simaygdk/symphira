@@ -1,20 +1,20 @@
 import "./globals.css";
-import { AudioPlayerProvider } from "./providers/AudioPlayerProvider";
-import AudioPlayer from "./components/AudioPlayer";
-
-export const metadata = {
-  title: "Symphira",
-  description: "Music platform",
-};
+import { PlayerProvider } from "./context/PlayerContext";
+import { AudioPlayerProvider } from "./components/AudioPlayerContext";
+import PlayerBar from "./components/PlayerBar";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>
+      <body className="bg-black text-white">
+
         <AudioPlayerProvider>
-          {children}
-          <AudioPlayer />
+          <PlayerProvider>
+            {children}
+            <PlayerBar />
+          </PlayerProvider>
         </AudioPlayerProvider>
+
       </body>
     </html>
   );

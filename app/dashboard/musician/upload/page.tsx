@@ -1,222 +1,147 @@
 "use client";
 
-import { useEffect, useState, DragEvent } from "react";
-import { db, storage, auth } from "../../../../lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { onAuthStateChanged } from "firebase/auth";
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { UploadCloud, Music2, Image as ImageIcon, CheckCircle } from "lucide-react";
+import { db, storage } from "../../../../lib/firebase";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { useAudioPlayer } from "../../../components/AudioPlayerContext";
 
 export default function UploadMusicPage() {
-  const [audio, setAudio] = useState<File | null>(null);
-  const [cover, setCover] = useState<File | null>(null);
+  const { playTrack } = useAudioPlayer();
+
   const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [user, setUser] = useState<any>(null);
+  const [artistName, setArtistName] = useState("");
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
 
-  const [audioProgress, setAudioProgress] = useState(0);
-  const [coverProgress, setCoverProgress] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
-  const [loading, setLoading] = useState(false);
-  const [dragActive, setDragActive] = useState(false);
-
-  // Fix: Auth listener must run only once
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => setUser(u));
-    return () => unsub();
-  }, []);
-
-  const handleDropAudio = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setDragActive(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith("audio/")) {
-      setAudio(file);
-    } else {
-      alert("Please drop a valid audio file.");
-    }
+  const handleCoverChange = (e: any) => {
+    setCoverFile(e.target.files[0]);
   };
 
-  const handleDropCover = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith("image/")) {
-      setCover(file);
-    } else {
-      alert("Please drop a valid image file.");
-    }
+  const handleAudioChange = (e: any) => {
+    setAudioFile(e.target.files[0]);
   };
 
-  const handleUpload = async () => {
-    if (!audio || !title || !user) {
-      alert("Please select audio and enter a title.");
+  const handleSubmit = async () => {
+    if (!title || !artistName || !coverFile || !audioFile) {
+      alert("Please fill all fields and upload required files.");
       return;
     }
 
-    setLoading(true);
+    setUploading(true);
 
     try {
-      // AUDIO UPLOAD
-      const audioRef = ref(storage, `tracks/${user.uid}-${audio.name}`);
-      const audioTask = uploadBytesResumable(audioRef, audio);
+      const coverRef = ref(storage, `covers/${Date.now()}-${coverFile.name}`);
+      await uploadBytes(coverRef, coverFile);
+      const coverURL = await getDownloadURL(coverRef);
 
-      const audioURL = await new Promise<string>((resolve, reject) => {
-        audioTask.on(
-          "state_changed",
-          (snap) => {
-            const progress = (snap.bytesTransferred / snap.totalBytes) * 100;
-            setAudioProgress(progress);
-          },
-          reject,
-          async () => resolve(await getDownloadURL(audioTask.snapshot.ref))
-        );
-      });
-
-      // COVER UPLOAD (optional)
-      let coverURL = "";
-      if (cover) {
-        const coverRef = ref(storage, `covers/${user.uid}-${cover.name}`);
-        const coverTask = uploadBytesResumable(coverRef, cover);
-
-        coverURL = await new Promise<string>((resolve, reject) => {
-          coverTask.on(
-            "state_changed",
-            (snap) => {
-              const progress = (snap.bytesTransferred / snap.totalBytes) * 100;
-              setCoverProgress(progress);
-            },
-            reject,
-            async () => resolve(await getDownloadURL(coverTask.snapshot.ref))
-          );
-        });
-      }
+      const audioRef = ref(storage, `tracks/${Date.now()}-${audioFile.name}`);
+      await uploadBytes(audioRef, audioFile);
+      const audioURL = await getDownloadURL(audioRef);
 
       await addDoc(collection(db, "tracks"), {
         title,
-        description,
-        audioURL,
+        artistName,
         coverURL,
-        artist: user.uid,
-        artistName: user.email,
-        plays: 0,
+        audioURL,
         createdAt: serverTimestamp(),
       });
 
-      alert("Upload complete!");
-
-      // Reset fields
-      setAudio(null);
-      setCover(null);
-      setTitle("");
-      setDescription("");
-      setAudioProgress(0);
-      setCoverProgress(0);
+      setSuccess(true);
+      setUploading(false);
     } catch (err) {
       console.error(err);
+      setUploading(false);
       alert("Upload failed.");
     }
-
-    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center bg-gradient-to-b from-black to-gray-900 text-white px-6 py-10">
-      <div className="w-full max-w-2xl bg-white/5 backdrop-blur-xl p-8 rounded-xl border border-white/10 shadow-xl">
-        <h1 className="text-3xl font-bold mb-6 text-center">Upload Music</h1>
+    <main className="min-h-screen px-6 py-16 bg-gradient-to-b from-[#140a25] via-[#1c0f36] to-[#2b1650] text-white">
+      <h1 className="text-4xl font-bold mb-8 text-purple-300 drop-shadow-[0_0_25px_rgba(180,50,255,0.4)]">
+        Upload Music
+      </h1>
 
-        {/* Title Input */}
+      <div className="max-w-xl space-y-6">
         <input
           type="text"
           placeholder="Track Title"
-          className="p-3 text-black rounded mb-4 w-full"
-          value={title}
+          className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white"
           onChange={(e) => setTitle(e.target.value)}
         />
 
-        {/* Description */}
-        <textarea
-          placeholder="Description"
-          className="p-3 text-black rounded mb-4 w-full h-24"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
+        <input
+          type="text"
+          placeholder="Artist Name"
+          className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white"
+          onChange={(e) => setArtistName(e.target.value)}
         />
 
-        {/* AUDIO DRAG DROP */}
-        <div
-          onDrop={handleDropAudio}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragActive(true);
-          }}
-          onDragLeave={() => setDragActive(false)}
-          className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer mb-4 transition ${
-            dragActive ? "border-purple-400 bg-purple-400/10" : "border-gray-500"
-          }`}
-          onClick={() => document.getElementById("audioInput")?.click()}
-        >
-          {audio ? (
-            <p className="text-gray-200">{audio.name}</p>
-          ) : (
-            <p className="text-gray-400">Drag & drop audio here or click to upload</p>
-          )}
+        <div className="space-y-2">
+          <p className="text-sm text-neutral-400">Upload Cover (JPG/PNG)</p>
+          <label className="flex flex-col items-center justify-center w-full h-40 rounded-xl border border-dashed border-white/30 hover:border-purple-400 transition cursor-pointer bg-white/5">
+            <ImageIcon size={32} className="text-purple-300 mb-2" />
+            <span className="text-sm text-neutral-300">
+              {coverFile ? coverFile.name : "Click to upload cover"}
+            </span>
+            <input type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
+          </label>
         </div>
 
-        <input
-          id="audioInput"
-          type="file"
-          accept="audio/*"
-          className="hidden"
-          onChange={(e) => setAudio(e.target.files?.[0] || null)}
-        />
-
-        {audioProgress > 0 && (
-          <div className="w-full bg-gray-800 h-2 rounded mb-4">
-            <div
-              className="bg-purple-500 h-2 rounded"
-              style={{ width: `${audioProgress}%` }}
-            />
-          </div>
-        )}
-
-        {/* COVER DRAG DROP */}
-        <div
-          onDrop={handleDropCover}
-          onDragOver={(e) => e.preventDefault()}
-          onClick={() => document.getElementById("coverInput")?.click()}
-          className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer mb-4 border-gray-500"
-        >
-          {cover ? (
-            <p className="text-gray-200">{cover.name}</p>
-          ) : (
-            <p className="text-gray-400">Drag & drop cover image here or click to upload</p>
-          )}
+        <div className="space-y-2">
+          <p className="text-sm text-neutral-400">Upload Audio (MP3/WAV)</p>
+          <label className="flex flex-col items-center justify-center w-full h-40 rounded-xl border border-dashed border-white/30 hover:border-purple-400 transition cursor-pointer bg-white/5">
+            <Music2 size={32} className="text-purple-300 mb-2" />
+            <span className="text-sm text-neutral-300">
+              {audioFile ? audioFile.name : "Click to upload audio"}
+            </span>
+            <input type="file" accept="audio/*" className="hidden" onChange={handleAudioChange} />
+          </label>
         </div>
 
-        <input
-          id="coverInput"
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => setCover(e.target.files?.[0] || null)}
-        />
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          disabled={uploading}
+          onClick={handleSubmit}
+          className="w-full py-3 rounded-xl bg-purple-600/30 border border-purple-400 text-purple-200 hover:bg-purple-600/40 transition flex items-center justify-center gap-2"
+        >
+          <UploadCloud size={20} />
+          {uploading ? "Uploading..." : "Upload Track"}
+        </motion.button>
 
-        {coverProgress > 0 && (
-          <div className="w-full bg-gray-800 h-2 rounded mb-4">
-            <div
-              className="bg-blue-500 h-2 rounded"
-              style={{ width: `${coverProgress}%` }}
-            />
-          </div>
+        {success && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mt-6 flex items-center gap-3 text-green-400 bg-white/10 border border-green-500/30 p-4 rounded-xl"
+          >
+            <CheckCircle size={22} />
+            Upload Successful!
+          </motion.div>
         )}
 
-        {/* Upload button */}
-        <button
-          className="w-full py-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-lg font-semibold disabled:bg-gray-600"
-          onClick={handleUpload}
-          disabled={loading}
-        >
-          {loading ? "Uploading..." : "Upload Track"}
-        </button>
+        {audioFile && (
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() =>
+              playTrack({
+                title,
+                artistName,
+                audioURL: URL.createObjectURL(audioFile),
+                coverURL: coverFile ? URL.createObjectURL(coverFile) : "",
+              })
+            }
+            className="w-full py-3 rounded-xl bg-green-600/20 border border-green-500/40 text-green-300 hover:bg-green-600/30 transition flex items-center justify-center gap-2 mt-4"
+          >
+            Preview Track
+          </motion.button>
+        )}
       </div>
-    </div>
+    </main>
   );
 }

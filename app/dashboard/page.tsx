@@ -2,75 +2,61 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import {
-  Music,
-  Briefcase,
-  ShoppingBag,
-  Headphones,
-} from "lucide-react";
+import { Music, Briefcase, ShoppingCart, Headphones } from "lucide-react";
 
-export default function DashboardPage() {
-  const modules = [
+export default function DashboardHome() {
+  const cards = [
     {
       title: "Musician",
-      desc: "Upload music, manage your library, view offers.",
-      icon: <Music size={40} />,
+      desc: "Upload your tracks, manage your library and build your profile.",
+      icon: <Music size={32} />,
       href: "/dashboard/musician",
-      color: "from-purple-500/40 to-purple-700/40",
     },
     {
       title: "Employer",
-      desc: "Create offers, manage applications, discover talent.",
-      icon: <Briefcase size={40} />,
+      desc: "Create offers, find musicians and manage your collaborations.",
+      icon: <Briefcase size={32} />,
       href: "/dashboard/employer",
-      color: "from-yellow-500/40 to-yellow-700/40",
     },
     {
       title: "Seller",
-      desc: "Sell samples, presets, merch & digital products.",
-      icon: <ShoppingBag size={40} />,
+      desc: "Sell beats, stems, sound packs and digital music assets.",
+      icon: <ShoppingCart size={32} />,
       href: "/dashboard/seller",
-      color: "from-green-500/40 to-green-700/40",
     },
     {
       title: "Listener",
-      desc: "Discover artists, browse music & enjoy playlists.",
-      icon: <Headphones size={40} />,
+      desc: "Discover new music and enjoy curated playlists.",
+      icon: <Headphones size={32} />,
       href: "/dashboard/listener",
-      color: "from-blue-500/40 to-blue-700/40",
     },
   ];
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-[#0a0a1f] via-[#1b1035] to-[#3b1560] text-white px-6 py-16">
-      <h1 className="text-5xl font-bold text-center text-[#f5d36e] drop-shadow-lg">
+    <main className="min-h-screen px-6 py-16 bg-gradient-to-b from-[#0a0714] via-[#1a0f2b] to-[#2a1342] text-white">
+      <h1 className="text-5xl font-bold text-center text-purple-300 drop-shadow-[0_0_35px_rgba(180,50,255,0.4)]">
         Welcome to Symphira
       </h1>
 
-      <p className="text-center text-neutral-300 mt-3">
-        Choose any module — no roles, no limits. Create your world.
+      <p className="text-center text-neutral-300 mt-3 max-w-xl mx-auto">
+        Select how you want to explore Symphira today.
       </p>
 
-      <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-10 max-w-4xl mx-auto">
-        {modules.map((mod) => (
-          <Link key={mod.title} href={mod.href}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto mt-16">
+        {cards.map((card) => (
+          <Link href={card.href} key={card.title}>
             <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.97 }}
-              className={`
-                cursor-pointer p-8 rounded-3xl border border-white/20 backdrop-blur-xl 
-                shadow-xl transition bg-gradient-to-br ${mod.color}
-              `}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.96 }}
+              className="p-6 rounded-2xl backdrop-blur-xl bg-white/10 border border-white/20 
+              shadow-[0_0_25px_rgba(150,70,255,0.2)] hover:shadow-[0_0_35px_rgba(150,70,255,0.35)] 
+              transition cursor-pointer"
             >
-              <div className="flex items-center gap-4">
-                <div className="text-white drop-shadow-xl">{mod.icon}</div>
-                <div>
-                  <h2 className="text-2xl font-semibold text-white">
-                    {mod.title}
-                  </h2>
-                  <p className="text-neutral-300 text-sm mt-1">{mod.desc}</p>
-                </div>
-              </div>
+              <div className="text-purple-300 mb-4">{card.icon}</div>
+
+              <h2 className="text-2xl font-semibold">{card.title}</h2>
+
+              <p className="text-neutral-300 mt-2 text-sm">{card.desc}</p>
             </motion.div>
           </Link>
         ))}
