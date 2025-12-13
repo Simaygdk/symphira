@@ -1,111 +1,202 @@
 "use client";
+
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { auth, db } from "../../lib/firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { signOut, onAuthStateChanged } from "firebase/auth";
+import { auth, db } from "@/lib/firebase";
+import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
+import Image from "next/image";
 
 export default function ProfilePage() {
-  const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
+  const user = auth.currentUser;
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        setUser(firebaseUser);
-        const ref = doc(db, "users", firebaseUser.uid);
-        const snap = await getDoc(ref);
-        if (snap.exists()) setProfile(snap.data());
-      }
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
+  const [name, setName] = useState("");
+  const [bio, setBio] = useState("");
+  const [location, setLocation] = useState("");
+  const [skills, setSkills] = useState<string[]>([]);
+  const [skillInput, setSkillInput] = useState("");
 
-  const handleRoleChange = (role: string) => {
-    if (!profile) return;
-    const roles = profile.roles || [];
-    if (roles.includes(role)) {
-      setProfile({ ...profile, roles: roles.filter((r: string) => r !== role) });
-    } else {
-      setProfile({ ...profile, roles: [...roles, role] });
-    }
+  const [instagram, setInstagram] = useState("");
+  const [youtube, setYoutube] = useState("");
+  const [spotify, setSpotify] = useState("");
+
+  useEffect(() => {
+    const load = async () => {
+      if (!user) return;
+
+      const ref = doc(db, "users", user.uid);
+      const snap = await getDoc(ref);
+
+      if (snap.exists()) {
+        const data = snap.data();
+        setName(data.name || user.displayName || "");
+        setBio(data.bio || "");
+        setLocation(data.location || "");
+        setSkills(data.skills || []);
+
+        setInstagram(data.social?.instagram || "");
+        setYoutube(data.social?.youtube || "");
+        setSpotify(data.social?.spotify || "");
+      } else {
+        // First-time profile creation
+        await setDoc(ref, {
+          name: user.displayName || "",
+          email: user.email || "",
+          bio: "",
+          location: "",
+          skills: [],
+          social: {},
+        });
+      }
+
+      setLoading(false);
+    };
+
+    load();
+  }, [user]);
+
+  const addSkill = () => {
+    if (!skillInput.trim()) return;
+    setSkills([...skills, skillInput.trim()]);
+    setSkillInput("");
   };
 
-  const handleSave = async () => {
-    if (!user || !profile) return;
+  const removeSkill = (index: number) => {
+    setSkills(skills.filter((_, i) => i !== index));
+  };
+
+  const saveProfile = async () => {
+    if (!user) return;
+
     setSaving(true);
-    try {
-      const ref = doc(db, "users", user.uid);
-      await updateDoc(ref, { roles: profile.roles });
-      alert("✅ Profile updated successfully!");
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      alert("❌ Failed to update profile");
-    }
+
+    await updateDoc(doc(db, "users", user.uid), {
+      name,
+      bio,
+      location,
+      skills,
+      social: {
+        instagram,
+        youtube,
+        spotify,
+      },
+    });
+
     setSaving(false);
   };
 
-  if (loading) {
+  if (!user) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-black text-gray-400">
-        Loading profile...
-      </div>
+      <main className="min-h-screen text-white flex justify-center items-center">
+        Please log in.
+      </main>
     );
   }
 
-  if (!user || !profile) {
-    router.push("/login");
-    return null;
+  if (loading) {
+    return (
+      <main className="min-h-screen text-white flex justify-center items-center">
+        Loading profile...
+      </main>
+    );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white">
-      <div className="bg-zinc-900 p-8 rounded-2xl shadow-lg w-96 text-center">
-        <h1 className="text-2xl font-bold mb-4 text-purple-400">Edit Profile</h1>
-        <p className="text-gray-300 mb-1">Email: {user.email}</p>
+    <main className="min-h-screen px-6 py-16 text-white max-w-3xl mx-auto">
 
-        <div className="mt-4 text-left">
-          <p className="text-gray-400 mb-2 font-semibold">Roles:</p>
+      <h1 className="text-4xl font-bold mb-10">My Profile</h1>
 
-          {["musician", "employer", "seller", "listener"].map((role) => (
-            <label key={role} className="block mb-2">
-              <input
-                type="checkbox"
-                checked={profile.roles?.includes(role)}
-                onChange={() => handleRoleChange(role)}
-                className="mr-2 accent-purple-500"
-              />
-              {role.charAt(0).toUpperCase() + role.slice(1)}
-            </label>
-          ))}
-        </div>
+      {/* NAME */}
+      <label className="text-white/70 text-sm">Name</label>
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        className="w-full p-3 mb-6 rounded bg-white/10 border border-white/20"
+      />
 
+      {/* BIO */}
+      <label className="text-white/70 text-sm">Bio</label>
+      <textarea
+        rows={4}
+        value={bio}
+        onChange={(e) => setBio(e.target.value)}
+        className="w-full p-3 mb-6 rounded bg-white/10 border border-white/20"
+      />
+
+      {/* LOCATION */}
+      <label className="text-white/70 text-sm">Location</label>
+      <input
+        value={location}
+        onChange={(e) => setLocation(e.target.value)}
+        className="w-full p-3 mb-6 rounded bg-white/10 border border-white/20"
+      />
+
+      {/* SKILLS */}
+      <label className="text-white/70 text-sm">Skills</label>
+      <div className="flex gap-3 mb-4">
+        <input
+          value={skillInput}
+          onChange={(e) => setSkillInput(e.target.value)}
+          className="flex-1 p-3 rounded bg-white/10 border border-white/20"
+        />
         <button
-          onClick={handleSave}
-          disabled={saving}
-          className="w-full bg-purple-600 hover:bg-purple-700 py-2 rounded mt-6"
+          onClick={addSkill}
+          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded"
         >
-          {saving ? "Saving..." : "Save Changes"}
-        </button>
-
-        <button
-          onClick={() => router.push("/dashboard")}
-          className="w-full bg-zinc-700 hover:bg-zinc-600 py-2 rounded mt-3"
-        >
-          Back to Dashboard
-        </button>
-
-        <button
-          onClick={() => signOut(auth)}
-          className="w-full bg-red-600 hover:bg-red-500 py-2 rounded mt-4"
-        >
-          Logout
+          Add
         </button>
       </div>
-    </div>
+
+      <ul className="space-y-2 mb-6">
+        {skills.map((s, index) => (
+          <li
+            key={index}
+            className="flex justify-between bg-white/10 p-3 rounded border border-white/20"
+          >
+            {s}
+            <button
+              onClick={() => removeSkill(index)}
+              className="text-red-400 hover:text-red-300"
+            >
+              Remove
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      {/* SOCIAL */}
+      <h2 className="text-2xl font-semibold mt-10 mb-4">Social Links</h2>
+
+      <label className="text-sm text-white/70">Instagram</label>
+      <input
+        value={instagram}
+        onChange={(e) => setInstagram(e.target.value)}
+        className="w-full p-3 mb-4 rounded bg-white/10 border border-white/20"
+      />
+
+      <label className="text-sm text-white/70">YouTube</label>
+      <input
+        value={youtube}
+        onChange={(e) => setYoutube(e.target.value)}
+        className="w-full p-3 mb-4 rounded bg-white/10 border border-white/20"
+      />
+
+      <label className="text-sm text-white/70">Spotify</label>
+      <input
+        value={spotify}
+        onChange={(e) => setSpotify(e.target.value)}
+        className="w-full p-3 mb-6 rounded bg-white/10 border border-white/20"
+      />
+
+      {/* SAVE BUTTON */}
+      <button
+        onClick={saveProfile}
+        disabled={saving}
+        className="px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg text-white"
+      >
+        {saving ? "Saving..." : "Save Profile"}
+      </button>
+    </main>
   );
 }

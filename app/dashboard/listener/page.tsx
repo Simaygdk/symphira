@@ -7,12 +7,14 @@ import { collection, getDocs } from "firebase/firestore";
 import Link from "next/link";
 import Image from "next/image";
 
+// Components
 import ListenerDashboardHero from "./components/ListenerDashboardHero";
 import RecentlyPlayed from "./components/RecentlyPlayed";
 import SavedItems from "./components/SavedItems";
 import TrendingArtists from "./components/TrendingArtists";
 import YourActivity from "./components/YourActivity";
 import ArtistSuggestions from "./components/ArtistSuggestions";
+import TrendingTracks from "./components/TrendingTracks";
 
 export default function ListenerDashboard() {
   const [user, setUser] = useState<any>(null);
@@ -25,6 +27,7 @@ export default function ListenerDashboard() {
     artistsFollowed: 0,
   });
 
+  // AUTH LISTENER
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       if (u) setUser(u);
@@ -32,6 +35,7 @@ export default function ListenerDashboard() {
     return () => unsub();
   }, []);
 
+  // LOAD TRACKS + ARTISTS
   useEffect(() => {
     const load = async () => {
       const trackRef = collection(db, "tracks");
@@ -57,8 +61,8 @@ export default function ListenerDashboard() {
       setSaved(trackList.slice(0, 5));
 
       setStats({
-        listens: trackList.length * 12, // demo calculation
-        saved: 5,
+        listens: trackList.length * 12,
+        saved: trackList.slice(0, 5).length,
         artistsFollowed: artistList.length,
       });
     };
@@ -75,8 +79,14 @@ export default function ListenerDashboard() {
 
   return (
     <main className="min-h-screen text-white px-6 py-16 flex flex-col gap-16">
+
+      {/* HERO */}
       <ListenerDashboardHero />
 
+      {/* TRENDING TRACKS */}
+      <TrendingTracks tracks={tracks} />
+
+      {/* RECOMMENDATIONS */}
       <section className="flex flex-col gap-4">
         <h2 className="text-2xl font-semibold">Senin İçin Önerilenler</h2>
 
@@ -87,7 +97,7 @@ export default function ListenerDashboard() {
               href={`/dashboard/listener/track/${track.id}`}
               className="min-w-[160px] bg-white/5 p-4 rounded-xl border border-white/10 hover:bg-white/10 transition flex-shrink-0"
             >
-              <div className="aspect-square w-full rounded-lg overflow-hidden mb-3">
+              <div className="aspect-square rounded-lg overflow-hidden mb-3">
                 <Image
                   src={track.coverURL || "/default-cover.png"}
                   width={300}
@@ -98,14 +108,18 @@ export default function ListenerDashboard() {
               </div>
 
               <p className="font-medium truncate">{track.title}</p>
-              <p className="text-sm text-white/50 truncate">{track.artistName}</p>
+              <p className="text-sm text-white/50 truncate">
+                {track.artistName}
+              </p>
             </Link>
           ))}
         </div>
       </section>
 
+      {/* RECENTLY PLAYED */}
       <RecentlyPlayed items={tracks} />
 
+      {/* DISCOVER */}
       <section className="mb-10">
         <h2 className="text-2xl font-semibold mb-4">Discover Tracks</h2>
 
@@ -116,7 +130,7 @@ export default function ListenerDashboard() {
               href={`/dashboard/listener/track/${track.id}`}
               className="bg-white/5 p-4 rounded-xl border border-white/10 hover:bg-white/10 transition"
             >
-              <div className="aspect-square w-full rounded-lg overflow-hidden mb-3">
+              <div className="aspect-square rounded-lg overflow-hidden mb-3">
                 <Image
                   src={track.coverURL || "/default-cover.png"}
                   width={300}
@@ -133,12 +147,16 @@ export default function ListenerDashboard() {
         </div>
       </section>
 
+      {/* SAVED ITEMS */}
       <SavedItems items={saved} />
 
+      {/* TRENDING ARTISTS */}
       <TrendingArtists artists={artists} />
 
+      {/* ACTIVITY */}
       <YourActivity stats={stats} />
 
+      {/* SUGGESTIONS */}
       <ArtistSuggestions userId={user.uid} />
     </main>
   );

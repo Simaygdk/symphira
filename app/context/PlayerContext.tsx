@@ -1,29 +1,59 @@
 "use client";
 
-import { createContext, useContext, useState, useRef, useEffect } from "react";
+import { createContext, useContext, useState, useRef, useCallback } from "react";
+import { db } from "@/lib/firebase";
+import { doc, updateDoc, increment } from "firebase/firestore";
 
-const PlayerContext = createContext<any>(null);
+export type Track = {
+  id: string;
+  title: string;
+  artistName: string;
+  coverURL: string;
+  audioURL: string;
+};
 
-export function PlayerProvider({ children }: { children: React.ReactNode }) {
+type PlayerContextType = {
+  currentTrack: Track | null;
+  isPlaying: boolean;
+  playTrack: (track: Track) => void;
+  togglePlay: () => void;
+};
+
+const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
+
+export function AudioPlayerProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  const [currentTrack, setCurrentTrack] = useState<any>(null);
+  const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
 
-  const playTrack = (track: any) => {
-    setCurrentTrack(track);
-    setIsPlaying(true);
-
-    setTimeout(() => {
-      if (audioRef.current) {
-        audioRef.current.src = track.audioURL;
-        audioRef.current.play();
-      }
-    }, 50);
+  // 🔥 FIRESTORE PLAY COUNTER
+  const incrementPlayCount = async (trackId: string) => {
+    const ref = doc(db, "tracks", trackId);
+    await updateDoc(ref, {
+      plays: increment(1),
+    });
   };
 
-  const togglePlay = () => {
+  const playTrack = useCallback(
+    (track: Track) => {
+      setCurrentTrack(track);
+
+      if (!audioRef.current) {
+        audioRef.current = new Audio(track.audioURL);
+      } else {
+        audioRef.current.src = track.audioURL;
+      }
+
+      audioRef.current.play();
+      setIsPlaying(true);
+
+      // 🔥 her oynatmada Firestore play counter artar
+      incrementPlayCount(track.id);
+    },
+    []
+  );
+
+  const togglePlay = useCallback(() => {
     if (!audioRef.current) return;
 
     if (isPlaying) {
@@ -33,16 +63,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       audioRef.current.play();
       setIsPlaying(true);
     }
-  };
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (audioRef.current && isPlaying) {
-        setProgress(audioRef.current.currentTime);
-      }
-    }, 300);
-
-    return () => clearInterval(interval);
   }, [isPlaying]);
 
   return (
@@ -50,18 +70,17 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       value={{
         currentTrack,
         isPlaying,
-        progress,
         playTrack,
         togglePlay,
-        audioRef,
       }}
     >
       {children}
-      <audio ref={audioRef} />
     </PlayerContext.Provider>
   );
 }
 
-export function usePlayer() {
-  return useContext(PlayerContext);
+export function useAudioPlayer() {
+  const ctx = useContext(PlayerContext);
+  if (!ctx) throw new Error("useAudioPlayer must be used inside AudioPlayerProvider");
+  return ctx;
 }

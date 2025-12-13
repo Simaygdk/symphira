@@ -1,119 +1,120 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { auth, db } from "@/lib/firebase";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { Cinzel_Decorative, Poppins } from "next/font/google";
-import { PlusCircle, Briefcase, Users, FileText, BarChart3 } from "lucide-react";
 
-const cinzel = Cinzel_Decorative({
-  subsets: ["latin"],
-  weight: ["700"],
-});
+export default function EmployerDashboardPage() {
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["500", "600"],
-});
+  useEffect(() => {
+    if (!auth.currentUser) return;
 
-export default function EmployerDashboard() {
+    const q = query(
+      collection(db, "jobs"),
+      where("employerId", "==", auth.currentUser.uid)
+    );
+
+    const unsub = onSnapshot(q, (snap) => {
+      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setJobs(list);
+      setLoading(false);
+    });
+
+    return () => unsub();
+  }, []);
+
+  if (!auth.currentUser) {
+    return (
+      <main className="min-h-screen text-white flex items-center justify-center">
+        Please log in.
+      </main>
+    );
+  }
+
+  if (loading) {
+    return (
+      <main className="min-h-screen text-white flex items-center justify-center">
+        Loading dashboard...
+      </main>
+    );
+  }
+
   return (
-    <main className="relative min-h-screen bg-gradient-to-br from-[#0a0a1f] via-[#1b1035] to-[#3b1560] text-white px-6 py-16 overflow-hidden">
-      
-      {/* HEADER */}
-      <motion.h1
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-        className={`${cinzel.className} text-5xl md:text-6xl text-[#f5d36e] font-bold text-center drop-shadow-[0_0_25px_rgba(245,211,110,0.3)]`}
-      >
-        Employer Dashboard
-      </motion.h1>
+    <main className="min-h-screen text-white px-6 py-16 flex flex-col gap-16">
 
-      <p className="text-neutral-300 text-center mt-3 text-sm md:text-base max-w-md mx-auto">
-        Create offers, connect with musicians, and manage your projects.
-      </p>
+      <h1 className="text-4xl font-bold">Employer Dashboard</h1>
 
-      {/* GRID */}
-      <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
-
-        {/* CREATE OFFER */}
-        <DashboardCard
-          title="Create Offer"
-          icon={<PlusCircle size={26} />}
-          href="/dashboard/employer/create-offer"
-        />
-
-        {/* MY OFFERS */}
-        <DashboardCard
-          title="My Offers"
-          icon={<FileText size={26} />}
-          href="/dashboard/employer/offers"
-        />
-
-        {/* ARTIST DIRECTORY */}
-        <DashboardCard
-          title="Artist Directory"
-          icon={<Users size={26} />}
-          href="/dashboard/employer/artists"
-        />
-
-        {/* PROJECT ANALYTICS (coming soon) */}
-        <DashboardCard
-          title="Analytics"
-          icon={<BarChart3 size={26} />}
-          href="#"
-          disabled
-        />
-
-        {/* PROJECT MANAGEMENT (coming soon) */}
-        <DashboardCard
-          title="Project Management"
-          icon={<Briefcase size={26} />}
-          href="#"
-          disabled
-        />
-
-      </div>
-
-      {/* BACKGROUND EFFECT */}
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[300px] h-[300px] bg-[#f5d36e]/10 rounded-full blur-3xl" />
-      </div>
-
-    </main>
-  );
-}
-
-function DashboardCard({
-  title,
-  icon,
-  href,
-  disabled = false,
-}: {
-  title: string;
-  icon: React.ReactNode;
-  href: string;
-  disabled?: boolean;
-}) {
-  return (
-    <Link href={disabled ? "#" : href}>
-      <motion.div
-        whileHover={disabled ? {} : { scale: 1.03 }}
-        className={`p-6 rounded-2xl backdrop-blur-xl border border-white/20 bg-white/10
-        shadow-[0_0_25px_rgba(245,211,110,0.15)] transition-all
-        ${disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className={`${poppins.className} text-xl font-semibold text-[#f5d36e]`}>
-            {title}
-          </h3>
-          <div className="text-[#f5d36e]">{icon}</div>
+      {/* METRICS */}
+      <section className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="bg-white/5 p-6 rounded-xl border border-white/10 text-center">
+          <p className="text-sm text-white/60">Active Job Listings</p>
+          <h3 className="text-3xl font-semibold mt-1">{jobs.length}</h3>
         </div>
 
-        <p className="text-neutral-300 text-sm">
-          {disabled ? "Coming soon..." : "Go to page →"}
-        </p>
-      </motion.div>
-    </Link>
+        <div className="bg-white/5 p-6 rounded-xl border border-white/10 text-center">
+          <p className="text-sm text-white/60">Total Applicants</p>
+          <h3 className="text-3xl font-semibold mt-1">
+            {jobs.reduce((sum, job) => sum + (job.applicants?.length || 0), 0)}
+          </h3>
+        </div>
+
+        <div className="bg-white/5 p-6 rounded-xl border border-white/10 text-center">
+          <p className="text-sm text-white/60">Company Score</p>
+          <h3 className="text-3xl font-semibold mt-1">4.9 ★</h3>
+        </div>
+      </section>
+
+      {/* JOB ACTIONS */}
+      <Link
+        href="/dashboard/employer/post-job"
+        className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white w-fit"
+      >
+        Post New Job
+      </Link>
+
+      {/* LIST JOBS */}
+      <section className="flex flex-col gap-4">
+        <h2 className="text-2xl font-semibold">Your Job Listings</h2>
+
+        {jobs.length === 0 && (
+          <p className="text-white/60 text-sm">You haven’t posted any jobs yet.</p>
+        )}
+
+        <div className="flex flex-col gap-6">
+          {jobs.map((job) => (
+            <div
+              key={job.id}
+              className="bg-white/5 p-6 rounded-xl border border-white/10 backdrop-blur-xl"
+            >
+              <h3 className="text-xl font-semibold">{job.title}</h3>
+              <p className="text-white/60">{job.location}</p>
+              <p className="text-white/50 text-sm mt-2 mb-4">
+                Applicants: {job.applicants?.length || 0}
+              </p>
+
+              <div className="flex items-center gap-4">
+                <Link
+                  href={`/dashboard/employer/job/${job.id}`}
+                  className="text-purple-300 hover:text-purple-100 text-sm"
+                >
+                  Manage →
+                </Link>
+
+                <Link
+                  href={`/dashboard/employer/edit-job/${job.id}`}
+                  className="text-blue-300 hover:text-blue-100 text-sm"
+                >
+                  Edit
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+    </main>
   );
 }
