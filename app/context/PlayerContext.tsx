@@ -1,9 +1,10 @@
 "use client";
 
-import { createContext, useContext, useState, useRef, useCallback } from "react";
+import { createContext, useContext, useRef, useState, useCallback } from "react";
 import { db } from "@/lib/firebase";
 import { doc, updateDoc, increment } from "firebase/firestore";
 
+/* Tüm uygulamada kullanılacak tek Track tipi */
 export type Track = {
   id: string;
   title: string;
@@ -21,37 +22,32 @@ type PlayerContextType = {
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
 
-export function AudioPlayerProvider({ children }: { children: React.ReactNode }) {
+export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  // 🔥 FIRESTORE PLAY COUNTER
+  // Firestore play sayısını artırır
   const incrementPlayCount = async (trackId: string) => {
-    const ref = doc(db, "tracks", trackId);
-    await updateDoc(ref, {
+    await updateDoc(doc(db, "tracks", trackId), {
       plays: increment(1),
     });
   };
 
-  const playTrack = useCallback(
-    (track: Track) => {
-      setCurrentTrack(track);
+  const playTrack = useCallback((track: Track) => {
+    setCurrentTrack(track);
 
-      if (!audioRef.current) {
-        audioRef.current = new Audio(track.audioURL);
-      } else {
-        audioRef.current.src = track.audioURL;
-      }
+    if (!audioRef.current) {
+      audioRef.current = new Audio(track.audioURL);
+    } else {
+      audioRef.current.src = track.audioURL;
+    }
 
-      audioRef.current.play();
-      setIsPlaying(true);
+    audioRef.current.play();
+    setIsPlaying(true);
 
-      // 🔥 her oynatmada Firestore play counter artar
-      incrementPlayCount(track.id);
-    },
-    []
-  );
+    incrementPlayCount(track.id);
+  }, []);
 
   const togglePlay = useCallback(() => {
     if (!audioRef.current) return;
@@ -67,20 +63,17 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
 
   return (
     <PlayerContext.Provider
-      value={{
-        currentTrack,
-        isPlaying,
-        playTrack,
-        togglePlay,
-      }}
+      value={{ currentTrack, isPlaying, playTrack, togglePlay }}
     >
       {children}
     </PlayerContext.Provider>
   );
 }
 
-export function useAudioPlayer() {
+export function usePlayer() {
   const ctx = useContext(PlayerContext);
-  if (!ctx) throw new Error("useAudioPlayer must be used inside AudioPlayerProvider");
+  if (!ctx) {
+    throw new Error("usePlayer must be used inside PlayerProvider");
+  }
   return ctx;
 }
