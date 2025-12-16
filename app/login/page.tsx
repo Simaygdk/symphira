@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { signInWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { auth } from "../../lib/firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,73 +11,76 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async () => {
+    if (loading) return;
+
     setLoading(true);
-    setError(null);
+    setError("");
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push("/dashboard");
-    } catch (err: any) {
-      let message = "Login failed.";
-
-      if (err.code === "auth/invalid-credential") message = "Invalid email or password.";
-      if (err.code === "auth/user-not-found") message = "Account does not exist.";
-      if (err.code === "auth/wrong-password") message = "Incorrect password.";
-      if (err.code === "auth/too-many-requests") message = "Too many attempts. Try again later.";
-
-      setError(message);
+      router.replace("/dashboard");
+    } catch {
+      // Hatalı giriş durumunda kullanıcıya net geri bildirim
+      setError("Invalid email or password");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-black text-white px-4">
-      <div className="w-full max-w-md bg-zinc-900 p-8 rounded-2xl shadow-xl">
-        <h1 className="text-3xl font-bold mb-6 text-center text-purple-300">
-          Welcome Back
-        </h1>
+    <div className="relative min-h-screen bg-black overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/50 via-black to-black" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(168,85,247,0.18),transparent_60%)]" />
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          <input
-            type="email"
-            placeholder="Email address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full p-3 rounded bg-zinc-800 border border-zinc-700 outline-none focus:border-purple-500 transition"
-            required
-          />
+      <div className="relative z-10 flex min-h-screen items-center justify-center px-6">
+        <div className="w-full max-w-sm rounded-2xl bg-white/5 p-8 backdrop-blur ring-1 ring-white/10 shadow-2xl">
+          <h1 className="mb-2 text-center text-3xl font-semibold text-white">
+            Welcome back
+          </h1>
 
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-3 rounded bg-zinc-800 border border-zinc-700 outline-none focus:border-purple-500 transition"
-            required
-          />
+          <p className="mb-8 text-center text-sm text-white/60">
+            Sign in to continue to Symphira
+          </p>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-purple-600 hover:bg-purple-700 rounded-md font-medium transition"
-          >
-            {loading ? "Logging in..." : "Login"}
-          </button>
+          <div className="space-y-4">
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full rounded-md bg-black/60 px-3 py-2 text-white placeholder-white/40 outline-none ring-1 ring-white/10 transition focus:ring-purple-500"
+            />
 
-          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-        </form>
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-md bg-black/60 px-3 py-2 text-white placeholder-white/40 outline-none ring-1 ring-white/10 transition focus:ring-purple-500"
+            />
 
-        <p className="mt-6 text-center text-sm text-gray-400">
-          Don't have an account?{" "}
-          <Link href="/register" className="text-purple-400 hover:underline">
-            Register here
-          </Link>
-        </p>
+            {error && (
+              <p className="text-sm text-red-400">
+                {error}
+              </p>
+            )}
+
+            <button
+              onClick={handleLogin}
+              disabled={loading}
+              className="mt-6 w-full rounded-md bg-purple-600 py-2 font-medium text-white transition hover:bg-purple-700 disabled:opacity-50"
+            >
+              {loading ? "Signing in..." : "Login"}
+            </button>
+          </div>
+
+          <p className="mt-8 text-center text-xs text-white/40">
+            Where every sound becomes a story.
+          </p>
+        </div>
       </div>
     </div>
   );

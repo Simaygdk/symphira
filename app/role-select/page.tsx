@@ -1,58 +1,46 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import NeonBlob from "../components/NeonBlob";
+import { auth, db } from "@/lib/firebase";
+import { doc, updateDoc } from "firebase/firestore";
+
+const ROLES = [
+  { label: "Musician", value: "musician" },
+  { label: "Listener", value: "listener" },
+  { label: "Employer", value: "employer" },
+];
 
 export default function RoleSelectPage() {
   const router = useRouter();
 
-  const roles = [
-    {
-      label: "I'm a Musician",
-      sub: "Showcase your sound",
-      icon: "🎸",
-      value: "musician",
-    },
-    {
-      label: "I'm a Listener",
-      sub: "Discover new artists",
-      icon: "🎧",
-      value: "listener",
-    },
-    {
-      label: "I'm an Employer",
-      sub: "Hire musical talent",
-      icon: "💼",
-      value: "employer",
-    },
-    {
-      label: "I'm a Seller",
-      sub: "Sell your products",
-      icon: "🛍️",
-      value: "seller",
-    },
-  ];
+  const selectRole = async (role: string) => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    // Kullanıcının rolü Firestore'a yazılır
+    await updateDoc(doc(db, "users", user.uid), {
+      roles: [role],
+    });
+
+    router.replace("/dashboard");
+  };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-b from-[#090014] to-black text-white">
-      <h1 className="text-5xl font-bold mb-4 tracking-wide drop-shadow-[0_0_20px_rgba(180,0,255,0.6)]">
-        What Are You Looking For?
-      </h1>
+    <div className="min-h-screen flex items-center justify-center bg-black text-white">
+      <div className="space-y-6 text-center">
+        <h1 className="text-3xl font-bold">Select Your Role</h1>
 
-      <p className="text-lg text-purple-300 mb-20">
-        Explore your space within Symphira
-      </p>
-
-      <div className="grid grid-cols-2 gap-12">
-        {roles.map((role) => (
-          <NeonBlob
-            key={role.value}
-            icon={role.icon}
-            label={role.label}
-            sub={role.sub}
-            onClick={() => router.push(`/${role.value}`)}
-          />
-        ))}
+        <div className="flex gap-4 justify-center">
+          {ROLES.map((r) => (
+            <button
+              key={r.value}
+              onClick={() => selectRole(r.value)}
+              className="px-6 py-3 bg-purple-600 rounded-lg hover:bg-purple-700"
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

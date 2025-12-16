@@ -1,16 +1,19 @@
 "use client";
+
 import { useEffect, useState } from "react";
-import { db } from "@lib/firebase";
+import { db } from "@/lib/firebase";
 import {
   collection,
   query,
   orderBy,
   onSnapshot,
 } from "firebase/firestore";
+import { useAudioPlayer } from "@/app/context/AudioPlayerContext";
 
 interface Post {
   id: string;
-  username: string;
+  userId: string;
+  userName: string;
   caption: string;
   url: string;
   type: string;
@@ -19,26 +22,25 @@ interface Post {
 
 export default function FeedPage() {
   const [posts, setPosts] = useState<Post[]>([]);
+  const { playTrack } = useAudioPlayer();
 
   useEffect(() => {
-    // Firestore koleksiyonuna bağlan
+    // Feed postlarını canlı dinler
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
 
-    // onSnapshot canlı dinleyicisi
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const newPosts = snapshot.docs.map((doc) => ({
+    const unsub = onSnapshot(q, (snapshot) => {
+      const list = snapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data(),
-      })) as Post[];
-      setPosts(newPosts);
+        ...(doc.data() as Omit<Post, "id">),
+      }));
+      setPosts(list);
     });
 
-    // cleanup (bileşen unmount olunca dinlemeyi durdur)
-    return () => unsubscribe();
+    return () => unsub();
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center py-10">
+    <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center py-10 pb-32">
       <h1 className="text-3xl font-bold mb-6">🎵 Feed</h1>
 
       {posts.length === 0 ? (
@@ -48,12 +50,13 @@ export default function FeedPage() {
           {posts.map((post) => (
             <div
               key={post.id}
-              className="bg-gray-800 p-4 rounded-xl shadow-md border border-gray-700"
+              className="bg-gray-800 p-4 rounded-xl border border-gray-700"
             >
-              <p className="text-lg font-semibold">{post.username}</p>
+              <p className="text-lg font-semibold">{post.userName}</p>
               <p className="text-gray-300">{post.caption}</p>
 
-              {post.url && (
+              {/* IMAGE */}
+              {post.type === "image" && (
                 <img
                   src={post.url}
                   alt="post"
@@ -61,8 +64,39 @@ export default function FeedPage() {
                 />
               )}
 
-              <p className="text-sm text-gray-500 mt-2">
-                {new Date(post.createdAt?.seconds * 1000).toLocaleString()}
+              {/* VIDEO */}
+              {post.type === "video" && (
+                <video
+                  controls
+                  src={post.url}
+                  className="mt-3 w-full rounded-lg"
+                />
+              )}
+
+              {/* AUDIO → GLOBAL PLAYER */}
+              {post.type === "audio" && (
+                <button
+                  onClick={() =>
+                    playTrack({
+                      id: post.id,
+                      title: post.caption || "Audio post",
+                      artistName: post.userName,
+                      coverURL: "/default-cover.png",
+                      audioURL: post.url,
+                    })
+                  }
+                  className="mt-4 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-semibold"
+                >
+                  ▶ Play Audio
+                </button>
+              )}
+
+              <p className="text-sm text-gray-500 mt-3">
+                {post.createdAt?.seconds
+                  ? new Date(
+                      post.createdAt.seconds * 1000
+                    ).toLocaleString()
+                  : ""}
               </p>
             </div>
           ))}

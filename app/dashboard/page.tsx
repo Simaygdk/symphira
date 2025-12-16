@@ -1,66 +1,76 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useEffect } from "react";
 import Link from "next/link";
-import { Music, Briefcase, ShoppingCart, Headphones } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
-export default function DashboardHome() {
-  const cards = [
-    {
-      title: "Musician",
-      desc: "Upload your tracks, manage your library and build your profile.",
-      icon: <Music size={32} />,
-      href: "/dashboard/musician",
-    },
-    {
-      title: "Employer",
-      desc: "Create offers, find musicians and manage your collaborations.",
-      icon: <Briefcase size={32} />,
-      href: "/dashboard/employer",
-    },
-    {
-      title: "Seller",
-      desc: "Sell beats, stems, sound packs and digital music assets.",
-      icon: <ShoppingCart size={32} />,
-      href: "/dashboard/seller",
-    },
-    {
-      title: "Listener",
-      desc: "Discover new music and enjoy curated playlists.",
-      icon: <Headphones size={32} />,
-      href: "/dashboard/listener",
-    },
-  ];
+export default function DashboardPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      // Login yoksa login sayfasına atar
+      if (!user) {
+        router.replace("/login");
+      }
+    });
+
+    return () => unsubscribe();
+  }, [router]);
 
   return (
-    <main className="min-h-screen px-6 py-16 bg-gradient-to-b from-[#0a0714] via-[#1a0f2b] to-[#2a1342] text-white">
-      <h1 className="text-5xl font-bold text-center text-purple-300 drop-shadow-[0_0_35px_rgba(180,50,255,0.4)]">
-        Welcome to Symphira
-      </h1>
+    <div className="relative min-h-screen bg-black overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/40 via-black to-black" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(168,85,247,0.15),transparent_60%)]" />
 
-      <p className="text-center text-neutral-300 mt-3 max-w-xl mx-auto">
-        Select how you want to explore Symphira today.
-      </p>
+      <div className="relative z-10 mx-auto max-w-6xl px-6 py-16">
+        <h1 className="mb-3 text-4xl font-semibold text-white">
+          Welcome to Symphira
+        </h1>
+        <p className="mb-10 max-w-xl text-white/60">
+          Choose how you want to experience sound.
+        </p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto mt-16">
-        {cards.map((card) => (
-          <Link href={card.href} key={card.title}>
-            <motion.div
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.96 }}
-              className="p-6 rounded-2xl backdrop-blur-xl bg-white/10 border border-white/20 
-              shadow-[0_0_25px_rgba(150,70,255,0.2)] hover:shadow-[0_0_35px_rgba(150,70,255,0.35)] 
-              transition cursor-pointer"
-            >
-              <div className="text-purple-300 mb-4">{card.icon}</div>
-
-              <h2 className="text-2xl font-semibold">{card.title}</h2>
-
-              <p className="text-neutral-300 mt-2 text-sm">{card.desc}</p>
-            </motion.div>
+        <div className="grid gap-6 md:grid-cols-3">
+          <Link
+            href="/dashboard/artist"
+            className="group rounded-2xl bg-white/5 p-6 ring-1 ring-white/10 backdrop-blur transition hover:bg-white/10 hover:ring-purple-500"
+          >
+            <h2 className="mb-2 text-xl font-medium text-white">
+              Artist
+            </h2>
+            <p className="text-sm text-white/60">
+              Upload, manage and share your music.
+            </p>
           </Link>
-        ))}
+
+          <Link
+            href="/dashboard/listener"
+            className="group rounded-2xl bg-white/5 p-6 ring-1 ring-white/10 backdrop-blur transition hover:bg-white/10 hover:ring-purple-500"
+          >
+            <h2 className="mb-2 text-xl font-medium text-white">
+              Listener
+            </h2>
+            <p className="text-sm text-white/60">
+              Discover new sounds and artists.
+            </p>
+          </Link>
+
+          <Link
+            href="/dashboard/library"
+            className="group rounded-2xl bg-white/5 p-6 ring-1 ring-white/10 backdrop-blur transition hover:bg-white/10 hover:ring-purple-500"
+          >
+            <h2 className="mb-2 text-xl font-medium text-white">
+              Library
+            </h2>
+            <p className="text-sm text-white/60">
+              Your liked tracks and playlists.
+            </p>
+          </Link>
+        </div>
       </div>
-    </main>
+    </div>
   );
 }

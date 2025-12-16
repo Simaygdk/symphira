@@ -5,16 +5,28 @@ import { auth, db } from "@/lib/firebase";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import Image from "next/image";
 import Link from "next/link";
+import { useAudioPlayer } from "@/app/context/AudioPlayerContext";
+
+type Track = {
+  id: string;
+  title: string;
+  genre?: string;
+  coverURL: string;
+  audioURL: string;
+  artistName: string;
+  plays?: number;
+};
 
 export default function ArtistTracksPage() {
   const user = auth.currentUser;
-
-  const [tracks, setTracks] = useState<any[]>([]);
+  const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
+  const { playTrack } = useAudioPlayer();
 
   useEffect(() => {
     if (!user) return;
 
+    // Sadece kullanıcının own track'lerini çeker
     const q = query(
       collection(db, "tracks"),
       where("artistId", "==", user.uid)
@@ -23,7 +35,7 @@ export default function ArtistTracksPage() {
     const unsub = onSnapshot(q, (snap) => {
       const list = snap.docs.map((d) => ({
         id: d.id,
-        ...d.data(),
+        ...(d.data() as Omit<Track, "id">),
       }));
       setTracks(list);
       setLoading(false);
@@ -41,14 +53,13 @@ export default function ArtistTracksPage() {
   }
 
   return (
-    <main className="min-h-screen px-6 py-16 text-white max-w-4xl mx-auto">
-
+    <main className="min-h-screen px-6 py-16 text-white max-w-4xl mx-auto pb-32">
       <div className="flex items-center justify-between mb-10">
         <h1 className="text-4xl font-bold">My Tracks</h1>
 
         <Link
           href="/dashboard/artist/upload"
-          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white"
+          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg"
         >
           + Upload New Track
         </Link>
@@ -78,18 +89,38 @@ export default function ArtistTracksPage() {
               </div>
 
               <h2 className="text-xl font-semibold">{track.title}</h2>
-              <p className="text-sm text-white/60">{track.genre || "Unknown genre"}</p>
+              <p className="text-sm text-white/60">
+                {track.genre || "Unknown genre"}
+              </p>
 
               <p className="text-white/50 text-sm mt-2">
                 Plays: {track.plays ?? 0}
               </p>
 
-              <Link
-                href={`/dashboard/artist/tracks/${track.id}`}
-                className="mt-4 inline-block px-3 py-2 bg-purple-500 rounded hover:bg-purple-600 text-sm"
-              >
-                Manage Track
-              </Link>
+              <div className="flex gap-2 mt-4">
+                {/* Play butonu global player'ı tetikler */}
+                <button
+                  onClick={() =>
+                    playTrack({
+                      id: track.id,
+                      title: track.title,
+                      artistName: track.artistName,
+                      coverURL: track.coverURL,
+                      audioURL: track.audioURL,
+                    })
+                  }
+                  className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 rounded text-sm"
+                >
+                  ▶ Play
+                </button>
+
+                <Link
+                  href={`/dashboard/artist/tracks/${track.id}`}
+                  className="flex-1 px-3 py-2 bg-purple-500 hover:bg-purple-600 rounded text-sm text-center"
+                >
+                  Manage
+                </Link>
+              </div>
             </div>
           ))}
         </div>
