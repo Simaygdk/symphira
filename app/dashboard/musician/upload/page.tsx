@@ -6,11 +6,8 @@ import { UploadCloud, Music2, Image as ImageIcon, CheckCircle } from "lucide-rea
 import { db, storage } from "../../../../lib/firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { useAudioPlayer } from "../../../components/AudioPlayerContext";
 
 export default function UploadMusicPage() {
-  const { playTrack } = useAudioPlayer();
-
   const [title, setTitle] = useState("");
   const [artistName, setArtistName] = useState("");
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -123,23 +120,6 @@ export default function UploadMusicPage() {
             <CheckCircle size={22} />
             Upload Successful!
           </motion.div>
-        )}
-
-        {audioFile && (
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={() =>
-              playTrack({
-                title,
-                artistName,
-                audioURL: URL.createObjectURL(audioFile),
-                coverURL: coverFile ? URL.createObjectURL(coverFile) : "",
-              })
-            }
-            className="w-full py-3 rounded-xl bg-green-600/20 border border-green-500/40 text-green-300 hover:bg-green-600/30 transition flex items-center justify-center gap-2 mt-4"
-          >
-            Preview Track
-          </motion.button>
         )}
       </div>
     </main>

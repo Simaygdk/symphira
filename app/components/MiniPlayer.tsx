@@ -8,11 +8,11 @@ import {
   SkipForward,
   Volume2,
   VolumeX,
-  ChevronUp,
   Shuffle,
   Repeat,
 } from "lucide-react";
-import FullScreenPlayer from "@/app/components/FullScreenPlayer";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { db, auth } from "@/lib/firebase";
 
 type Track = {
   trackId: string;
@@ -31,6 +31,7 @@ const STATE_KEY = "symphira_player_state";
 
 export default function MiniPlayer() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playStartedRef = useRef(false);
 
   const [queue, setQueue] = useState<Track[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -45,9 +46,23 @@ export default function MiniPlayer() {
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState(false);
 
-  const [fullscreenOpen, setFullscreenOpen] = useState(false);
-
   const current = queue[currentIndex];
+
+  const logEvent = async (
+    type: "play" | "pause" | "skip" | "complete"
+  ) => {
+    const user = auth.currentUser;
+    if (!user || !current) return;
+
+    await addDoc(collection(db, "trackAnalytics"), {
+      userId: user.uid,
+      trackId: current.trackId,
+      type,
+      currentTime,
+      duration,
+      createdAt: serverTimestamp(),
+    });
+  };
 
   useEffect(() => {
     const raw = localStorage.getItem(STATE_KEY);
@@ -90,6 +105,7 @@ export default function MiniPlayer() {
       setCurrentIndex(d.startIndex ?? 0);
       setCurrentTime(0);
       setPlaying(d.autoplay ?? true);
+      playStartedRef.current = false;
     };
 
     window.addEventListener("symphira:setQueue", handler);
@@ -116,7 +132,8 @@ export default function MiniPlayer() {
 
     const onTime = () => setCurrentTime(audio.currentTime);
 
-    const onEnded = () => {
+    const onEnded = async () => {
+      await logEvent("complete");
       if (repeat) {
         audio.currentTime = 0;
         audio.play();
@@ -141,7 +158,17 @@ export default function MiniPlayer() {
 
   useEffect(() => {
     if (!audioRef.current) return;
-    playing ? audioRef.current.play() : audioRef.current.pause();
+
+    if (playing) {
+      audioRef.current.play();
+      if (!playStartedRef.current) {
+        logEvent("play");
+        playStartedRef.current = true;
+      }
+    } else {
+      audioRef.current.pause();
+      logEvent("pause");
+    }
   }, [playing]);
 
   useEffect(() => {
@@ -150,8 +177,9 @@ export default function MiniPlayer() {
     audioRef.current.muted = muted;
   }, [volume, muted]);
 
-  const next = () => {
+  const next = async () => {
     if (queue.length === 0) return;
+    await logEvent("skip");
 
     let nextIndex = currentIndex + 1;
 
@@ -164,10 +192,12 @@ export default function MiniPlayer() {
     setCurrentIndex(nextIndex);
     setCurrentTime(0);
     setPlaying(true);
+    playStartedRef.current = false;
   };
 
-  const prev = () => {
+  const prev = async () => {
     if (queue.length === 0) return;
+    await logEvent("skip");
 
     const prevIndex =
       currentIndex - 1 < 0 ? queue.length - 1 : currentIndex - 1;
@@ -175,6 +205,7 @@ export default function MiniPlayer() {
     setCurrentIndex(prevIndex);
     setCurrentTime(0);
     setPlaying(true);
+    playStartedRef.current = false;
   };
 
   const seek = (v: number) => {
@@ -186,91 +217,74 @@ export default function MiniPlayer() {
   if (!current) return null;
 
   return (
-    <>
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-black/95 ring-1 ring-white/10">
-        <input
-          type="range"
-          min={0}
-          max={duration || 0}
-          value={currentTime}
-          onChange={(e) => seek(Number(e.target.value))}
-          className="w-full accent-purple-500"
-        />
+    <div className="fixed bottom-0 left-0 right-0 z-40 bg-black/95 ring-1 ring-white/10">
+      <input
+        type="range"
+        min={0}
+        max={duration || 0}
+        value={currentTime}
+        onChange={(e) => seek(Number(e.target.value))}
+        className="w-full accent-purple-500"
+      />
 
-        <div className="flex items-center justify-between px-4 py-3">
-          <div>
-            <p className="text-sm text-white">
-              {current.title || current.trackId}
-            </p>
-            <p className="text-xs text-white/50">
-              {current.artist || "Unknown Artist"}
-            </p>
-          </div>
+      <div className="flex items-center justify-between px-4 py-3">
+        <div>
+          <p className="text-sm text-white">
+            {current.title || current.trackId}
+          </p>
+          <p className="text-xs text-white/50">
+            {current.artist || "Unknown Artist"}
+          </p>
+        </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShuffle(!shuffle)}
-              className={shuffle ? "text-purple-400" : "text-white/60"}
-            >
-              <Shuffle />
-            </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShuffle(!shuffle)}
+            className={shuffle ? "text-purple-400" : "text-white/60"}
+          >
+            <Shuffle />
+          </button>
 
-            <button onClick={prev} className="text-white">
-              <SkipBack />
-            </button>
+          <button onClick={prev} className="text-white">
+            <SkipBack />
+          </button>
 
-            <button
-              onClick={() => setPlaying(!playing)}
-              className="text-white"
-            >
-              {playing ? <Pause /> : <Play />}
-            </button>
+          <button
+            onClick={() => setPlaying(!playing)}
+            className="text-white"
+          >
+            {playing ? <Pause /> : <Play />}
+          </button>
 
-            <button onClick={next} className="text-white">
-              <SkipForward />
-            </button>
+          <button onClick={next} className="text-white">
+            <SkipForward />
+          </button>
 
-            <button
-              onClick={() => setRepeat(!repeat)}
-              className={repeat ? "text-purple-400" : "text-white/60"}
-            >
-              <Repeat />
-            </button>
+          <button
+            onClick={() => setRepeat(!repeat)}
+            className={repeat ? "text-purple-400" : "text-white/60"}
+          >
+            <Repeat />
+          </button>
 
-            <button
-              onClick={() => setMuted(!muted)}
-              className="text-white"
-            >
-              {muted || volume === 0 ? <VolumeX /> : <Volume2 />}
-            </button>
+          <button
+            onClick={() => setMuted(!muted)}
+            className="text-white"
+          >
+            {muted || volume === 0 ? <VolumeX /> : <Volume2 />}
+          </button>
 
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.01}
-              value={volume}
-              onChange={(e) => setVolume(Number(e.target.value))}
-              className="w-16 accent-purple-500"
-            />
-
-            <button
-              onClick={() => setFullscreenOpen(true)}
-              className="text-white/70"
-            >
-              <ChevronUp />
-            </button>
-          </div>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={volume}
+            onChange={(e) => setVolume(Number(e.target.value))}
+            className="w-16 accent-purple-500"
+          />
         </div>
       </div>
-
-      <FullScreenPlayer
-        open={fullscreenOpen}
-        onClose={() => setFullscreenOpen(false)}
-        trackId={current.trackId}
-        title={current.title || current.trackId}
-        artist={current.artist || "Unknown Artist"}
-      />
-    </>
+    </div>
   );
 }
