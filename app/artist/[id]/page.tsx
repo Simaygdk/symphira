@@ -25,7 +25,7 @@ export default function ArtistPage({ params }: { params: { id: string } }) {
   const [followDocId, setFollowDocId] = useState<string | null>(null);
   const [followersCount, setFollowersCount] = useState(0);
 
-  // Fetch artist profile
+
   useEffect(() => {
     const ref = doc(db, "musicians", artistId);
     getDoc(ref).then((snap) => {
@@ -33,7 +33,7 @@ export default function ArtistPage({ params }: { params: { id: string } }) {
     });
   }, [artistId]);
 
-  // Fetch artist tracks
+ 
   useEffect(() => {
     const q = query(
       collection(db, "tracks"),
@@ -47,7 +47,7 @@ export default function ArtistPage({ params }: { params: { id: string } }) {
     return () => unsub();
   }, [artistId]);
 
-  // Follow status tracking
+ 
   useEffect(() => {
     if (!user) return;
 
@@ -70,7 +70,7 @@ export default function ArtistPage({ params }: { params: { id: string } }) {
     return () => unsub();
   }, [artistId, user]);
 
-  // Followers count
+ 
   useEffect(() => {
     const q = query(
       collection(db, "followers"),
