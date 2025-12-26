@@ -5,4 +5,4 @@ node_modules
 .env.development
 firebase-key.json
 firebase-messaging-sw.js.map
-.hg
+.git
