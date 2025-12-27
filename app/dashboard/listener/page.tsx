@@ -1,46 +1,54 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search, Play } from "lucide-react";
+import { db } from "../../../lib/firebase";
+import {
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+} from "firebase/firestore";
 
 type Track = {
-  trackId: string;
-  storagePath: string;
+  id: string;
   title: string;
-  artist: string;
+  artistName: string;
+  coverURL: string;
+  audioURL: string;
+  ownerId: string;
 };
 
 export default function ListenerPage() {
-  const [query, setQuery] = useState("");
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [queryText, setQueryText] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const tracks: Track[] = [
-    {
-      trackId: "listener-1",
-      storagePath: "/test.mp3",
-      title: "Listener Track 1",
-      artist: "Symphira",
-    },
-    {
-      trackId: "listener-2",
-      storagePath: "/test.mp3",
-      title: "Listener Track 2",
-      artist: "Symphira",
-    },
-    {
-      trackId: "listener-3",
-      storagePath: "/test.mp3",
-      title: "Listener Track 3",
-      artist: "Symphira",
-    },
-  ];
+  useEffect(() => {
+    const q = query(
+      collection(db, "tracks"),
+      orderBy("createdAt", "desc")
+    );
+
+    const unsub = onSnapshot(q, (snapshot) => {
+      const list: Track[] = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...(doc.data() as Omit<Track, "id">),
+      }));
+      setTracks(list);
+      setLoading(false);
+    });
+
+    return () => unsub();
+  }, []);
 
   const filteredTracks = useMemo(() => {
     return tracks.filter(
       (track) =>
-        track.title.toLowerCase().includes(query.toLowerCase()) ||
-        track.artist.toLowerCase().includes(query.toLowerCase())
+        track.title.toLowerCase().includes(queryText.toLowerCase()) ||
+        track.artistName.toLowerCase().includes(queryText.toLowerCase())
     );
-  }, [query, tracks]);
+  }, [tracks, queryText]);
 
   const playFromListener = (startIndex: number) => {
     window.dispatchEvent(
@@ -66,24 +74,43 @@ export default function ListenerPage() {
           <div className="flex items-center gap-3 rounded-xl bg-white/5 px-4 py-3 ring-1 ring-white/10 backdrop-blur-xl">
             <Search size={18} className="text-white/50" />
             <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              value={queryText}
+              onChange={(e) => setQueryText(e.target.value)}
               placeholder="Search by track or artist"
               className="w-full bg-transparent text-sm outline-none"
             />
           </div>
         </div>
 
+        {loading && (
+          <p className="text-white/60">Loading tracks...</p>
+        )}
+
+        {!loading && filteredTracks.length === 0 && (
+          <p className="text-white/60 italic">
+            No tracks found.
+          </p>
+        )}
+
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {filteredTracks.map((track, index) => (
             <div
-              key={track.trackId}
+              key={track.id}
               className="rounded-2xl bg-white/5 p-5 ring-1 ring-white/10 backdrop-blur-xl transition hover:bg-white/10"
             >
-              <div className="mb-4 h-40 w-full rounded-xl bg-gradient-to-br from-purple-700/40 to-black" />
+              <div
+                className="mb-4 h-40 w-full rounded-xl bg-cover bg-center"
+                style={{
+                  backgroundImage: `url(${track.coverURL})`,
+                }}
+              />
 
-              <h2 className="text-lg font-medium">{track.title}</h2>
-              <p className="mb-4 text-sm text-white/60">{track.artist}</p>
+              <h2 className="text-lg font-medium">
+                {track.title}
+              </h2>
+              <p className="mb-4 text-sm text-white/60">
+                {track.artistName}
+              </p>
 
               <button
                 onClick={() => playFromListener(index)}

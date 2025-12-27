@@ -5,7 +5,7 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { motion } from "framer-motion";
-import { Image, Save, Edit } from "lucide-react";
+import { Image } from "lucide-react";
 
 type Mode = "create" | "view" | "edit";
 
@@ -103,7 +103,6 @@ export default function MusicianProfilePage() {
     setSaving(true);
 
     let photoURL = profile.photoURL;
-
     if (photoFile) {
       photoURL = await uploadToCloudinary(photoFile);
     }
@@ -132,7 +131,15 @@ export default function MusicianProfilePage() {
       ? URL.createObjectURL(photoFile)
       : profile.photoURL || "https://placehold.co/200x200/000000/FFFFFF/png?text=Artist";
 
-  const Chips = ({ list, field, editable }: { list: string[]; field: "genres" | "instruments" | "roles"; editable: boolean }) => (
+  const Chips = ({
+    list,
+    field,
+    editable,
+  }: {
+    list: string[];
+    field: "genres" | "instruments" | "roles";
+    editable: boolean;
+  }) => (
     <div className="flex flex-wrap gap-2">
       {list.map((item) => (
         <button
@@ -170,20 +177,58 @@ export default function MusicianProfilePage() {
 
         {(mode === "create" || mode === "edit") && (
           <>
-            <input placeholder="Artist Name" value={profile.artistName} onChange={(e) => setProfile({ ...profile, artistName: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-black/60 border border-white/20" />
-            <textarea placeholder="Artist Bio" rows={4} value={profile.bio} onChange={(e) => setProfile({ ...profile, bio: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-black/60 border border-white/20 resize-none" />
-            <input type="date" value={profile.birthDate} onChange={(e) => setProfile({ ...profile, birthDate: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-black/60 border border-white/20" />
+            <input
+              placeholder="Artist Name"
+              value={profile.artistName}
+              onChange={(e) => setProfile({ ...profile, artistName: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl bg-black/60 border border-white/20"
+            />
+
+            <textarea
+              placeholder="Artist Bio"
+              rows={4}
+              value={profile.bio}
+              onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl bg-black/60 border border-white/20 resize-none"
+            />
+
+            <input
+              type="date"
+              value={profile.birthDate}
+              onChange={(e) => setProfile({ ...profile, birthDate: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl bg-black/60 border border-white/20"
+            />
 
             <div className="flex flex-wrap gap-2">
               {GENDERS.map((g) => (
-                <button key={g} type="button" onClick={() => setProfile({ ...profile, gender: g })} className={`px-3 py-1 rounded-full text-sm border ${profile.gender === g ? "bg-purple-600/40 border-purple-400 text-purple-200" : "bg-black/50 border-white/20 text-white/60"}`}>
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => setProfile({ ...profile, gender: g })}
+                  className={`px-3 py-1 rounded-full text-sm border ${
+                    profile.gender === g
+                      ? "bg-purple-600/40 border-purple-400 text-purple-200"
+                      : "bg-black/50 border-white/20 text-white/60"
+                  }`}
+                >
                   {g}
                 </button>
               ))}
             </div>
 
-            <input placeholder="Country" value={profile.country} onChange={(e) => setProfile({ ...profile, country: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-black/60 border border-white/20" />
-            <input placeholder="City" value={profile.city} onChange={(e) => setProfile({ ...profile, city: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-black/60 border border-white/20" />
+            <input
+              placeholder="Country"
+              value={profile.country}
+              onChange={(e) => setProfile({ ...profile, country: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl bg-black/60 border border-white/20"
+            />
+
+            <input
+              placeholder="City"
+              value={profile.city}
+              onChange={(e) => setProfile({ ...profile, city: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl bg-black/60 border border-white/20"
+            />
 
             <p className="text-sm text-white/50">Genres</p>
             <Chips list={GENRES} field="genres" editable />
@@ -194,8 +239,12 @@ export default function MusicianProfilePage() {
             <p className="text-sm text-white/50">Roles</p>
             <Chips list={ROLES} field="roles" editable />
 
-            <motion.button whileTap={{ scale: 0.95 }} onClick={handleSave} disabled={saving} className="w-full py-3 rounded-xl bg-purple-600/30 border border-purple-400 text-purple-200">
-              <Save size={18} />
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={handleSave}
+              disabled={saving}
+              className="mt-6 px-6 py-2 text-sm rounded-lg bg-purple-600/25 border border-purple-400 text-purple-200 hover:bg-purple-600/35 transition"
+            >
               {saving ? "Saving..." : "Save Profile"}
             </motion.button>
           </>
@@ -218,8 +267,12 @@ export default function MusicianProfilePage() {
             <p className="text-sm text-white/50">Roles</p>
             <Chips list={ROLES} field="roles" editable={false} />
 
-            <motion.button whileTap={{ scale: 0.95 }} onClick={() => setMode("edit")} className="w-full py-3 rounded-xl bg-purple-600/30 border border-purple-400 text-purple-200">
-              <Edit size={18} /> Edit Profile
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setMode("edit")}
+              className="mt-6 px-6 py-2 text-sm rounded-lg bg-purple-600/25 border border-purple-400 text-purple-200 hover:bg-purple-600/35 transition"
+            >
+              Edit Profile
             </motion.button>
           </>
         )}

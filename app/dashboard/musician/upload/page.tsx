@@ -2,8 +2,13 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { UploadCloud, Image as ImageIcon, Music2, CheckCircle } from "lucide-react";
-import { db } from "../../../../lib/firebase";
+import {
+  UploadCloud,
+  Image as ImageIcon,
+  Music2,
+  CheckCircle,
+} from "lucide-react";
+import { db, auth } from "../../../../lib/firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
 const CLOUD_NAME = "dmqnvoish";
@@ -30,14 +35,20 @@ export default function UploadMusicPage() {
 
     const data = await res.json();
 
-    if (!data.secure_url) {
-      throw new Error("Upload failed");
+    if (!res.ok || !data.secure_url) {
+      throw new Error(data?.error?.message || "Cover upload failed");
     }
 
     return data.secure_url;
   };
 
   const handleSubmit = async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      alert("You must be logged in.");
+      return;
+    }
+
     if (!title || !artistName || !coverFile) {
       alert("Title, artist and cover image required.");
       return;
@@ -54,6 +65,7 @@ export default function UploadMusicPage() {
         artistName,
         coverURL,
         audioURL: "",
+        ownerId: user.uid,
         createdAt: serverTimestamp(),
       });
 
@@ -62,8 +74,8 @@ export default function UploadMusicPage() {
       setArtistName("");
       setCoverFile(null);
       setAudioFile(null);
-    } catch {
-      alert("Cover upload failed.");
+    } catch (err: any) {
+      alert(err.message || "Track upload failed.");
     } finally {
       setUploading(false);
     }
@@ -90,6 +102,7 @@ export default function UploadMusicPage() {
           onChange={(e) => setArtistName(e.target.value)}
         />
 
+        {/* COVER UPLOAD */}
         <div className="space-y-2">
           <p className="text-sm text-neutral-400">Upload Cover Image</p>
           <label className="flex flex-col items-center justify-center h-40 border border-dashed border-white/30 rounded-xl cursor-pointer bg-white/5">
@@ -106,6 +119,7 @@ export default function UploadMusicPage() {
           </label>
         </div>
 
+        {/* AUDIO UPLOAD (UI PRESENT, NOT REQUIRED) */}
         <div className="space-y-2">
           <p className="text-sm text-neutral-400">Upload Audio</p>
           <label className="flex flex-col items-center justify-center h-40 border border-dashed border-white/30 rounded-xl cursor-pointer bg-white/5">
