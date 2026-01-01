@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { ReactNode, useEffect } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import MiniPlayer from "@/app/components/MiniPlayer";
@@ -14,11 +14,7 @@ const symphiraFont = Cinzel_Decorative({
   weight: ["400", "700"],
 });
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -33,18 +29,11 @@ export default function DashboardLayout({
   }, [router]);
 
   const navItems = [
+    { label: "Jobs", href: "/dashboard/jobs" },
     { label: "Listener", href: "/dashboard/listener" },
     { label: "Musician", href: "/dashboard/musician" },
     { label: "Seller", href: "/dashboard/seller" },
-    { label: "Employer", href: "/dashboard/employer" },
   ];
-
-  const linkBase = "relative pb-1 transition-colors duration-300";
-
-  const goldUnderline =
-    "after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-[1px] after:w-full after:bg-gradient-to-r after:from-[#D4AF37]/0 after:via-[#D4AF37] after:to-[#D4AF37]/0 after:scale-x-0 after:origin-left after:transition-transform after:duration-300 hover:after:scale-x-100";
-
-  const activeGold = "after:scale-x-100 text-[#E6C87A]";
 
   return (
     <LikeProvider>
@@ -52,7 +41,7 @@ export default function DashboardLayout({
         <nav className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/dashboard">
             <span
-              className={`${symphiraFont.className} text-2xl tracking-wider bg-gradient-to-r from-purple-200 via-[#E6C87A] to-purple-300 bg-clip-text text-transparent hover:opacity-90 transition`}
+              className={`${symphiraFont.className} text-2xl tracking-wider bg-gradient-to-r from-purple-200 via-[#E6C87A] to-purple-300 bg-clip-text text-transparent`}
             >
               SYMPHIRA
             </span>
@@ -66,10 +55,10 @@ export default function DashboardLayout({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`${linkBase} ${goldUnderline} ${
+                  className={`relative pb-1 transition-colors duration-300 ${
                     active
-                      ? activeGold
-                      : "text-white/60 hover:text-white"
+                      ? "text-[#E6C87A] after:absolute after:left-0 after:-bottom-1 after:h-[1px] after:w-full after:bg-gradient-to-r after:from-[#D4AF37]/0 after:via-[#D4AF37] after:to-[#D4AF37]/0 after:scale-x-100"
+                      : "text-white/60 hover:text-white after:absolute after:left-0 after:-bottom-1 after:h-[1px] after:w-full after:bg-gradient-to-r after:from-[#D4AF37]/0 after:via-[#D4AF37] after:to-[#D4AF37]/0 after:scale-x-0 hover:after:scale-x-100 after:origin-left after:transition-transform after:duration-300"
                   }`}
                 >
                   {item.label}
