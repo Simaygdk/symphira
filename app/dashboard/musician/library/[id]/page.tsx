@@ -27,7 +27,6 @@ export default function EditTrackPage() {
   const [newFile, setNewFile] = useState<File | null>(null);
   const [newCover, setNewCover] = useState<File | null>(null);
 
-  // FETCH TRACK DATA
   useEffect(() => {
     const loadTrack = async () => {
       const refDoc = doc(db, "tracks", trackId);
@@ -49,9 +48,6 @@ export default function EditTrackPage() {
     loadTrack();
   }, [trackId]);
 
-  // ------------------------------
-  // HANDLE SAVE
-  // ------------------------------
   const handleSave = async () => {
     setSaving(true);
 
@@ -59,9 +55,9 @@ export default function EditTrackPage() {
       let finalUrl = track.url;
       let finalCoverUrl = track.coverUrl || null;
 
-      // If NEW MUSIC FILE uploaded → replace the old one
+      
       if (newFile) {
-        // 1) delete old file
+        
         try {
           if (track.url) {
             await deleteObject(ref(storage, track.url));
@@ -70,20 +66,18 @@ export default function EditTrackPage() {
           console.warn("Old file couldn't be deleted:", err);
         }
 
-        // 2) upload new file
         const storageRef = ref(storage, `tracks/${Date.now()}_${newFile.name}`);
         await uploadBytes(storageRef, newFile);
         finalUrl = await getDownloadURL(storageRef);
       }
 
-      // If NEW COVER uploaded
       if (newCover) {
         const coverRef = ref(storage, `covers/${Date.now()}_${newCover.name}`);
         await uploadBytes(coverRef, newCover);
         finalCoverUrl = await getDownloadURL(coverRef);
       }
 
-      // Update Firestore
+    
       await updateDoc(doc(db, "tracks", trackId), {
         title: newTitle,
         description: newDesc,

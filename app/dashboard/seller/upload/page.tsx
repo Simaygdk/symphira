@@ -1,10 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { db, storage, auth } from "../../../../lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { motion } from "framer-motion";
+import { UploadCloud, Image as ImageIcon, CheckCircle } from "lucide-react";
+import { db, auth } from "@/lib/firebase";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
+
+const CLOUD_NAME = "dmqnvoish";
+const UPLOAD_PRESET = "symphira_profile";
+
+const CATEGORIES = [
+  "Strings",
+  "Percussion",
+  "Wind",
+  "Electronic",
+];
 
 export default function SellerUploadPage() {
   const router = useRouter();
@@ -12,173 +23,162 @@ export default function SellerUploadPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
-  const [type, setType] = useState("beat");
-
-  const [file, setFile] = useState<File | null>(null);
-  const [cover, setCover] = useState<File | null>(null);
+  const [category, setCategory] = useState("");
+  const [coverFile, setCoverFile] = useState<File | null>(null);
 
   const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [success, setSuccess] = useState(false);
 
-  const types = [
-    { value: "beat", label: "Beat" },
-    { value: "loop", label: "Loop" },
-    { value: "pack", label: "Sound Pack" },
-    { value: "stem", label: "Stem" },
-  ];
+  const uploadCoverToCloudinary = async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", UPLOAD_PRESET);
 
-  const handleUpload = async () => {
-    if (!file || !title || !price) {
-      alert("Please fill all required fields.");
-      return;
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok || !data.secure_url) {
+      throw new Error("Cover upload failed");
     }
 
-    if (!auth.currentUser) {
+    return data.secure_url as string;
+  };
+
+  const handleSubmit = async () => {
+    const user = auth.currentUser;
+
+    if (!user) {
       alert("You must be logged in.");
       return;
     }
 
+    if (!title || !price || !category || !coverFile) {
+      alert("Please fill all required fields.");
+      return;
+    }
+
     setUploading(true);
+    setSuccess(false);
 
     try {
-      // upload audio
-      const audioRef = ref(storage, `products/${auth.currentUser.uid}-${Date.now()}-${file.name}`);
-      const audioTask = uploadBytesResumable(audioRef, file);
-
-      const audioURL = await new Promise<string>((resolve, reject) => {
-        audioTask.on(
-          "state_changed",
-          snap => {
-            const p = (snap.bytesTransferred / snap.totalBytes) * 100;
-            setProgress(p);
-          },
-          reject,
-          async () => resolve(await getDownloadURL(audioTask.snapshot.ref))
-        );
-      });
-
-      // upload cover (optional)
-      let coverURL = "";
-      if (cover) {
-        const coverRef = ref(storage, `product_covers/${auth.currentUser.uid}-${Date.now()}-${cover.name}`);
-        const coverTask = uploadBytesResumable(coverRef, cover);
-
-        coverURL = await new Promise<string>((resolve, reject) => {
-          coverTask.on(
-            "state_changed",
-            () => {},
-            reject,
-            async () => resolve(await getDownloadURL(coverTask.snapshot.ref))
-          );
-        });
-      }
+      const coverURL = await uploadCoverToCloudinary(coverFile);
 
       await addDoc(collection(db, "products"), {
         title,
         description,
         price: Number(price),
-        type,
-        audioURL,
+        category,
         coverURL,
-        sellerId: auth.currentUser.uid,
+        sellerId: user.uid,
         createdAt: serverTimestamp(),
       });
 
-      alert("Product uploaded!");
-      router.push("/dashboard/seller/products");
-    } catch (err) {
-      console.error(err);
-      alert("Upload failed.");
-    }
+      setSuccess(true);
+      setTitle("");
+      setDescription("");
+      setPrice("");
+      setCategory("");
+      setCoverFile(null);
 
-    setUploading(false);
+      setTimeout(() => {
+        router.push("/dashboard/seller/products");
+      }, 800);
+    } catch (err: any) {
+      alert(err.message || "Upload failed.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen px-6 py-12 bg-gradient-to-b from-[#12071e] via-[#1c1030] to-[#2d1546] text-white flex justify-center">
-      <div className="w-full max-w-xl bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-8 shadow-xl">
+    <main className="min-h-screen px-6 py-16 bg-gradient-to-b from-[#140a25] via-[#1c0f36] to-[#2b1650] text-white">
+      <h1 className="text-4xl font-bold mb-8 text-purple-300">
+        Upload Product
+      </h1>
 
-        <h1 className="text-3xl font-bold mb-8 text-purple-300 text-center">
-          Upload Product
-        </h1>
+      <div className="max-w-xl space-y-6">
+        <input
+          value={title}
+          placeholder="Product Title"
+          className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+          onChange={(e) => setTitle(e.target.value)}
+        />
 
-        <div className="space-y-5">
+        <textarea
+          value={description}
+          placeholder="Description"
+          className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+          rows={3}
+          onChange={(e) => setDescription(e.target.value)}
+        />
 
-          <input
-            type="text"
-            placeholder="Product Title"
-            className="w-full p-3 rounded-xl bg-white/10 border border-white/20 outline-none"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
+        <input
+          value={price}
+          placeholder="Price (TL)"
+          className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20"
+          onChange={(e) => setPrice(e.target.value)}
+        />
 
-          <textarea
-            placeholder="Description"
-            className="w-full p-3 rounded-xl bg-white/10 border border-white/20 outline-none"
-            rows={3}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-
-          <input
-            type="number"
-            placeholder="Price (USD)"
-            className="w-full p-3 rounded-xl bg-white/10 border border-white/20 outline-none"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-          />
-
-          <select
-            className="w-full p-3 rounded-xl bg-white/10 border border-white/20 outline-none"
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-          >
-            {types.map(t => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
+        <div className="space-y-2">
+          <p className="text-sm text-neutral-400">Category</p>
+          <div className="flex gap-3 flex-wrap">
+            {CATEGORIES.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCategory(c)}
+                className={`px-4 py-2 rounded-xl border transition ${
+                  category === c
+                    ? "bg-purple-600/40 border-purple-400 text-purple-200"
+                    : "bg-white/5 border-white/20 text-neutral-300 hover:bg-white/10"
+                }`}
+              >
+                {c}
+              </button>
             ))}
-          </select>
-
-          <div>
-            <p className="mb-2 text-sm text-neutral-300">Audio File</p>
-            <input
-              type="file"
-              accept="audio/*"
-              className="w-full"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-            />
           </div>
+        </div>
 
-          <div>
-            <p className="mb-2 text-sm text-neutral-300">Cover Image (optional)</p>
+        <div className="space-y-2">
+          <p className="text-sm text-neutral-400">Upload Cover Image</p>
+          <label className="flex flex-col items-center justify-center h-40 border border-dashed border-white/30 rounded-xl cursor-pointer bg-white/5">
+            <ImageIcon size={32} className="text-purple-300 mb-2" />
+            <span className="text-sm text-neutral-300">
+              {coverFile ? coverFile.name : "Click to upload cover"}
+            </span>
             <input
               type="file"
               accept="image/*"
-              className="w-full"
-              onChange={(e) => setCover(e.target.files?.[0] || null)}
+              className="hidden"
+              onChange={(e) => setCoverFile(e.target.files?.[0] || null)}
             />
-          </div>
-
-          {uploading && (
-            <div className="w-full bg-white/10 rounded h-2 overflow-hidden">
-              <div
-                className="bg-purple-400 h-full transition-all"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          )}
-
-          <button
-            disabled={uploading}
-            onClick={handleUpload}
-            className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-700 transition"
-          >
-            {uploading ? "Uploading..." : "Upload Product"}
-          </button>
-
+          </label>
         </div>
+
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          disabled={uploading}
+          onClick={handleSubmit}
+          className="w-full py-3 rounded-xl bg-purple-600/30 border border-purple-400 text-purple-200 flex justify-center gap-2"
+        >
+          <UploadCloud size={20} />
+          {uploading ? "Uploading..." : "Upload Product"}
+        </motion.button>
+
+        {success && (
+          <div className="flex items-center gap-3 text-green-400 bg-white/10 border border-green-500/30 p-4 rounded-xl">
+            <CheckCircle size={22} />
+            Product saved successfully
+          </div>
+        )}
       </div>
-    </div>
+    </main>
   );
 }
