@@ -1,3 +1,4 @@
+//MVP İÇİ GELİŞTİRİLECEK
 "use client";
 
 import { signOut } from "firebase/auth";

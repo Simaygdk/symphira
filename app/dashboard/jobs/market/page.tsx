@@ -1,7 +1,13 @@
 "use client";
+// Bu sayfanın client (tarayıcı) tarafında çalışacağını belirtir
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+// Kart tıklanınca detay sayfasına yönlendirmek için
+
 import { auth, db } from "@/lib/firebase";
+// Firebase auth ve Firestore bağlantıları
+
 import {
   collection,
   onSnapshot,
@@ -10,6 +16,7 @@ import {
   query,
   where,
 } from "firebase/firestore";
+// Firestore veri okuma ve yazma işlemleri
 
 type Job = {
   id: string;
@@ -19,22 +26,38 @@ type Job = {
   description: string;
   salary: string;
   ownerId: string;
+  ownerName?: string;
 };
+// İş ilanı tipi
 
 type Application = {
   id: string;
   jobId: string;
   applicantId: string;
 };
+// Başvuru tipi
 
 export default function JobsMarketPage() {
+  // İş ilanlarının listelendiği marketplace sayfası
+
   const [jobs, setJobs] = useState<Job[]>([]);
+  // Tüm iş ilanları
+
   const [applications, setApplications] = useState<Application[]>([]);
+  // Giriş yapan kullanıcının yaptığı başvurular
+
   const [loading, setLoading] = useState(true);
+  // Yüklenme durumu
 
   const user = auth.currentUser;
+  // Giriş yapan kullanıcı
+
+  const router = useRouter();
+  // Sayfa yönlendirme hook’u
 
   useEffect(() => {
+    // Jobs collection’ını canlı olarak dinler
+
     const unsubJobs = onSnapshot(collection(db, "jobs"), (snap) => {
       const list = snap.docs
         .map((doc) => ({
@@ -42,12 +65,15 @@ export default function JobsMarketPage() {
           ...(doc.data() as any),
         }))
         .filter((job) => job.ownerId);
+      // ownerId olan geçerli ilanlar alınır
 
       setJobs(list);
       setLoading(false);
     });
 
     let unsubApps = () => {};
+    // Kullanıcının başvurularını dinlemek için
+
     if (user) {
       const q = query(
         collection(db, "applications"),
@@ -71,8 +97,11 @@ export default function JobsMarketPage() {
 
   const hasApplied = (jobId: string) =>
     applications.some((a) => a.jobId === jobId);
+  // Kullanıcı bu ilana daha önce başvurmuş mu kontrolü
 
   const apply = async (job: Job) => {
+    // Başvuru işlemi
+
     if (!user) {
       alert("You must be logged in.");
       return;
@@ -108,6 +137,7 @@ export default function JobsMarketPage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden text-white">
+      {/* Arka plan efektleri */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#2b1650] via-[#140a25] to-black" />
       <div className="absolute -top-32 left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-purple-600/20 blur-[160px]" />
 
@@ -124,10 +154,15 @@ export default function JobsMarketPage() {
             return (
               <div
                 key={job.id}
+                onClick={() =>
+                  router.push(`/dashboard/jobs/${job.id}`)
+                }
                 className="
+                  cursor-pointer
                   bg-white/10 backdrop-blur-xl
                   border border-white/20 rounded-2xl
                   p-6 shadow-[0_0_25px_rgba(150,70,255,0.15)]
+                  hover:bg-white/15 transition
                 "
               >
                 <h2 className="text-xl font-semibold text-purple-200">
@@ -136,6 +171,10 @@ export default function JobsMarketPage() {
 
                 <p className="text-neutral-300 text-sm mt-1">
                   {job.company} · {job.location}
+                </p>
+
+                <p className="text-neutral-400 text-sm mt-1">
+                  Employer: {job.ownerName || "Unknown"}
                 </p>
 
                 <p className="text-neutral-400 text-sm mt-3 line-clamp-4">
@@ -148,7 +187,10 @@ export default function JobsMarketPage() {
 
                 <button
                   disabled={isOwner || applied}
-                  onClick={() => apply(job)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    apply(job);
+                  }}
                   className={`
                     mt-4 w-full py-2 rounded-xl border transition
                     ${
