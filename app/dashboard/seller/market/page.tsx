@@ -94,7 +94,7 @@ export default function SellerMarketPage() {
             >
               {status === "sold" && (
                 <span className="absolute top-3 left-3 bg-red-600 text-xs px-3 py-1 rounded-full">
-                  SATILDI
+                  SOLD OUT
                 </span>
               )}
 
